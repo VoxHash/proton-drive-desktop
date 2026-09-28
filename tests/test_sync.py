@@ -57,7 +57,7 @@ def test_status_helpers(tmp_path: Path | None = None) -> None:
         config.save({"theme": "dark", "download_folder": str(folder), "cli_path": "", "autostart": False, "sync_folder": str(folder), "sync_enabled": True})
         assert "off" not in format_status_line()
         config.save({"theme": "dark", "download_folder": str(folder), "cli_path": "", "autostart": False, "sync_folder": str(folder), "sync_enabled": False})
-        assert format_status_line().startswith("Sync folder: off")
+        assert format_status_line().startswith("Always-on folder: off")
         old = dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=400)
         config.save_sync_status({"state": "idle", "last_finished": old.isoformat(), "message": ""})
         assert due_for_pass()
@@ -66,6 +66,15 @@ def test_status_helpers(tmp_path: Path | None = None) -> None:
         assert not due_for_pass()
     finally:
         config.CONFIG_DIR, config.CONFIG_PATH, config.SYNC_STATUS_PATH = original
+
+
+def test_settings_always_on_wording() -> None:
+    text = (ROOT / "proton_drive_linux" / "app.py").read_text(encoding="utf-8")
+    assert 'title="Always-on folder"' in text
+    assert 'title="Enable always-on folder"' in text
+    assert "Keep a local My files folder" not in text
+    assert "_set_autostart(True)" in text
+    assert "start_sync_now()" in text
 
 
 def test_live_sync_primitives() -> None:
@@ -120,5 +129,6 @@ if __name__ == "__main__":
     test_official_cli_has_no_fuse()
     test_local_children_skips_hidden()
     test_status_helpers()
+    test_settings_always_on_wording()
     test_live_sync_primitives()
     print("sync checks passed")

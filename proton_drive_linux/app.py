@@ -1296,7 +1296,7 @@ class DriveApp(Adw.Application):
         settings = Gio.Menu()
         settings.append("Settings", "app.preferences")
         settings.append("Open Drive in browser", "app.open-browser")
-        settings.append("Open sync folder", "app.open-sync")
+        settings.append("Open always-on folder", "app.open-sync")
         menu.append_section(None, settings)
         help_section = Gio.Menu()
         help_section.append("Proton Drive Help", "app.help")
@@ -1362,6 +1362,8 @@ class DriveApp(Adw.Application):
             )
             self._tray.start()
             GLib.timeout_add_seconds(20, self._on_sync_tick)
+            if load_config().get("sync_enabled"):
+                self._sync_proc = spawn_worker(force=False)
         self._window.present()
 
     def _on_window_close(self, *_args) -> bool:
@@ -1562,7 +1564,7 @@ class SettingsDialog(Adw.PreferencesDialog):
 
         folders = Adw.PreferencesGroup(
             title="Downloads",
-            description="One-off downloads from the toolbar. This is not the always-on My files folder.",
+            description="One-off downloads from the toolbar. This is not the always-on folder.",
         )
         self.download_row = Adw.ActionRow(title="Download folder", subtitle=str(download_folder()))
         choose_dl = Gtk.Button(label="Choose", valign=Gtk.Align.CENTER)
@@ -1572,10 +1574,13 @@ class SettingsDialog(Adw.PreferencesDialog):
         app_page.add(folders)
 
         sync = Adw.PreferencesGroup(
-            title="My files folder",
-            description="Official CLI 0.8.0 cannot FUSE-mount Drive. When enabled, a separate niced process skip/merge-copies /my-files into this local folder and uploads new local children. Existing files are never replaced.",
+            title="Always-on folder",
+            description="Official CLI 0.8.0 cannot FUSE-mount Drive. Enable keeps a real local directory in skip/merge sync with /my-files via a niced filesystem download/upload worker, starts that worker now, and turns on session autostart so it stays on after login. Existing files are never replaced.",
         )
-        self.sync_switch = Adw.SwitchRow(title="Keep a local My files folder")
+        self.sync_switch = Adw.SwitchRow(
+            title="Enable always-on folder",
+            subtitle="Starts the CLI worker now and with this session. Not a kernel mount.",
+        )
         self.sync_switch.set_active(bool(self.cfg.get("sync_enabled")))
         self.sync_switch.connect("notify::active", self._on_sync_enabled)
         sync.add(self.sync_switch)
@@ -1596,7 +1601,7 @@ class SettingsDialog(Adw.PreferencesDialog):
 
         startup = Adw.PreferencesGroup(
             title="Startup",
-            description="Same idea as the Windows Drive setting, using XDG autostart.",
+            description="XDG autostart for this GUI. Enabling the always-on folder turns this on so the worker comes back after login.",
         )
         self.autostart_row = Adw.SwitchRow(title="Start with this session")
         self.autostart_row.set_active(xdg_autostart_path().is_file())
@@ -1670,7 +1675,7 @@ class SettingsDialog(Adw.PreferencesDialog):
         self.download_row.set_subtitle(path)
 
     def _choose_sync(self, *_args) -> None:
-        dialog = Gtk.FileDialog(title="My files folder")
+        dialog = Gtk.FileDialog(title="Always-on folder")
         dialog.select_folder(self.window, None, self._on_sync_chosen)
 
     def _on_sync_chosen(self, dialog, result) -> None:
@@ -1684,19 +1689,34 @@ class SettingsDialog(Adw.PreferencesDialog):
         self._persist(sync_folder=path)
         self.sync_folder_row.set_subtitle(path)
         Path(path).mkdir(parents=True, exist_ok=True)
+        if bool(self.cfg.get("sync_enabled")):
+            application = self.window.get_application()
+            if isinstance(application, DriveApp):
+                application.start_sync_now()
+                self.sync_status_row.set_subtitle(format_status_line())
 
     def _on_sync_enabled(self, row, _pspec) -> None:
         enabled = bool(row.get_active())
+        application = self.window.get_application()
         if enabled:
             Path(str(self.cfg.get("sync_folder") or configured_sync_folder())).expanduser().mkdir(parents=True, exist_ok=True)
-        self._persist(sync_enabled=enabled)
-        application = self.window.get_application()
+            _set_autostart(True)
+            self._persist(sync_enabled=True, autostart=True)
+            if not self.autostart_row.get_active():
+                self.autostart_row.set_active(True)
+            if isinstance(application, DriveApp):
+                application.start_sync_now()
+                application._refresh_sync_label()
+            self.sync_status_row.set_subtitle(format_status_line())
+            return
+        self._persist(sync_enabled=False)
         if isinstance(application, DriveApp):
+            application._stop_sync_worker()
             application._refresh_sync_label()
+        self.sync_status_row.set_subtitle(format_status_line())
 
     def _sync_now(self, *_args) -> None:
         Path(str(self.cfg.get("sync_folder") or configured_sync_folder())).expanduser().mkdir(parents=True, exist_ok=True)
-        self._persist(sync_enabled=True)
         self.sync_switch.set_active(True)
         application = self.window.get_application()
         if isinstance(application, DriveApp):

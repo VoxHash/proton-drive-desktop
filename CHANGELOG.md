@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 — 2026-09-28
+
+- Settings always-on folder: enable starts the niced CLI download/upload worker immediately, keeps the chosen path, and turns on session autostart so the local folder stays on after login (still not FUSE)
+
 ## 1.5.0 — 2026-09-28
 
 - Local My files folder in Settings: official CLI 0.8.0 still cannot FUSE-mount Drive, so a separate niced process skip/merge-copies `/my-files` into a user-chosen directory and uploads new local children without blocking the file list

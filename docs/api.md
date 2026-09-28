@@ -14,7 +14,7 @@ cli.move("/my-files/new-copy", "/my-files/Business")
 # cli.empty_trash()  # permanently deletes every item in /trash
 ```
 
-My files folder worker (separate process, not FUSE):
+Always-on folder worker (separate process, not FUSE):
 
 ```python
 from proton_drive_linux.sync import format_status_line, run_once

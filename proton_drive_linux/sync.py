@@ -78,7 +78,7 @@ def run_once(*, force: bool = False) -> dict[str, Any]:
     cfg = load_config()
     enabled = bool(cfg.get("sync_enabled"))
     if not enabled and not force:
-        return _status(state="off", message="Sync folder is disabled in Settings")
+        return _status(state="off", message="Always-on folder is disabled in Settings")
     if gui_is_busy() and not force:
         return _status(state="idle", message="Waiting until the file list is idle")
     folder = Path(str(cfg.get("sync_folder") or default_sync_folder())).expanduser()
@@ -177,19 +177,19 @@ def due_for_pass(status: dict[str, Any] | None = None) -> bool:
 def format_status_line(status: dict[str, Any] | None = None) -> str:
     cfg = load_config()
     if not cfg.get("sync_enabled"):
-        return "Sync folder: off"
+        return "Always-on folder: off"
     payload = status if status is not None else load_sync_status()
     state = str(payload.get("state") or "idle")
     message = str(payload.get("message") or "")
     if state == "running":
-        return message or "Sync folder: running"
+        return message or "Always-on folder: running"
     if state == "error":
         err = str(payload.get("last_error") or message or "error")
-        return f"Sync folder: {err[:80]}"
+        return f"Always-on folder: {err[:80]}"
     finished = str(payload.get("last_finished") or "")
     if finished:
-        return f"Sync folder: last {finished}"
-    return message or "Sync folder: waiting"
+        return f"Always-on folder: last {finished}"
+    return message or "Always-on folder: waiting"
 
 
 def main(argv: list[str] | None = None) -> int:

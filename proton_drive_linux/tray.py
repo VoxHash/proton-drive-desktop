@@ -237,7 +237,7 @@ class StatusNotifierTray:
             1: ("Show window", self._run_show),
             2: ("Hide", self._run_hide),
             4: ("Open My files", self._run_open_files),
-            5: ("Open sync folder", self._run_open_sync),
+            5: ("Open always-on folder", self._run_open_sync),
             6: ("Open in browser", self._run_open_browser),
             8: ("Settings", self._run_settings),
             9: ("Help", self._run_help),

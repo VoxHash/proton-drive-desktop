@@ -11,4 +11,4 @@ From the repo without installing:
 python3 scripts/proton-drive-linux
 ```
 
-After launch, Settings → Keep a local My files folder uses official CLI download/upload. It is not a FUSE mount.
+After launch, Settings → Enable always-on folder uses official CLI download/upload. It is not a FUSE mount.

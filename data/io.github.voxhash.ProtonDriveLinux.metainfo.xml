@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.6.0" date="2026-09-28">
+      <description>
+        <p>Always-on folder in Settings: enable starts the official CLI download/upload worker and session autostart. Proton Drive CLI 0.8.0 still cannot FUSE-mount Drive.</p>
+      </description>
+    </release>
     <release version="1.5.0" date="2026-09-28">
       <description>
         <p>Local My files folder via official CLI download/upload. Proton Drive CLI 0.8.0 still cannot FUSE-mount Drive.</p>

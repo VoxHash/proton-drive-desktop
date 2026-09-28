@@ -9,4 +9,4 @@ make user-install
 proton-drive-linux
 ```
 
-Help in the app opens https://proton.me/support/drive. Settings reads the live CLI session (account email, CLI path, version) and can keep a local My files folder without FUSE.
+Help in the app opens https://proton.me/support/drive. Settings reads the live CLI session (account email, CLI path, version) and can keep an always-on folder without FUSE.

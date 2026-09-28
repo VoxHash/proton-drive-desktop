@@ -10,7 +10,7 @@
 - [x] Desktop + AppStream + `make user-install` / Arch PKGBUILD
 - [x] Sharing invites from the UI (`proton-drive sharing` / `invitation`)
 - [x] Rename, copy, move, empty trash in the UI (CLI already has these)
-- [x] Local My files sync folder (official CLI 0.8.0 has no FUSE `mount`; Settings uses live `filesystem download` / `upload` in a separate niced process)
+- [x] Always-on local folder in Settings (enable, path, autostart the niced CLI worker; official CLI 0.8.0 has no FUSE `mount`)
 - [ ] AUR publish and Flathub listing
 - [ ] Replace with Proton's official Linux GUI when they ship it
 

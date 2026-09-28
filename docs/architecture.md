@@ -6,4 +6,4 @@ No Proton API is reimplemented. When Proton ships a Linux Drive app, this GUI sh
 
 The window, `.desktop` file, hicolor theme, and StatusNotifierItem tray use Proton’s official Drive launcher mark from `ProtonDriveApps/android-drive`.
 
-The My files folder worker is a separate niced `python3 -m proton_drive_linux.sync` process. It never runs `filesystem download` on the GTK thread, and it waits while the window is listing files unless the user clicks Sync now.
+The always-on folder worker is a separate niced `python3 -m proton_drive_linux.sync` process. It never runs `filesystem download` on the GTK thread, and it waits while the window is listing files unless the user clicks Sync now.

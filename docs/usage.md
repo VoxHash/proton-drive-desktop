@@ -8,13 +8,13 @@ Launch `proton-drive-linux`. Sidebar sections map to CLI paths `/my-files`, `/ph
 
 Pending invitations from `proton-drive invitation list` appear at the top of **Shared with me**. Open one to Accept or Reject (`invitation accept` / `invitation reject`).
 
-Settings can enable a local **My files folder** (default `~/Proton Drive`). That is not a FUSE mount: official CLI 0.8.0 has no `mount` command. A separate niced process runs `filesystem download` then `filesystem upload` with skip/merge so the GTK file list is not blocked. Existing local and remote files are never replaced. Sync does not touch `/trash`.
+Settings can enable an **always-on folder** (default `~/Proton Drive`). That is not a FUSE mount: official CLI 0.8.0 has no `mount` command. Enabling it starts a separate niced process (`filesystem download` then `filesystem upload` with skip/merge) and turns on session autostart so the worker stays on after login. Existing local and remote files are never replaced. Sync does not touch `/trash`.
 
 The primary menu (hamburger) matches official Drive’s Help / Settings / About / account actions:
 
-- **Settings** — live account email, CLI version and path, theme, download folder, My files folder, autostart, sign out (`proton-drive auth logout`)
+- **Settings** — live account email, CLI version and path, theme, download folder, always-on folder, autostart, sign out (`proton-drive auth logout`)
 - **Proton Drive Help** — https://proton.me/support/drive
 - **Drive CLI Help** — https://proton.me/support/drive-cli
 - **Open Drive in browser** — https://drive.proton.me
-- **Open sync folder** — opens the local My files folder
+- **Open always-on folder** — opens the local always-on folder
 - **About** — this unofficial GUI, plus Proton Terms and Privacy links from the Windows Drive About pane
