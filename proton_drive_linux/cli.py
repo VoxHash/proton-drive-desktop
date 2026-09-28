@@ -4,14 +4,123 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from .paths import CLI_DOWNLOAD_URL
 
 
 class CliError(RuntimeError):
     pass
+
+
+_CLI_LINE = "Proton Drive CLI "
+_SDK_LINE = "Proton Drive SDK "
+_LATEST_LINE = "You are running the latest version."
+_NEWER_RE = re.compile(
+    r"A newer version is available:\s*(\d+\.\d+\.\d+)\s*\(you have\s*(\d+\.\d+\.\d+)\)",
+    re.IGNORECASE,
+)
+_DOWNLOAD_RE = re.compile(r"Download at\s+(\S+)", re.IGNORECASE)
+_SEMVER_RE = re.compile(r"^(\d+\.\d+\.\d+)")
+
+
+@dataclass(frozen=True)
+class CliVersionInfo:
+    """Parsed `proton-drive version` output (text; `-j` is ignored by CLI 0.8.0)."""
+
+    raw: str
+    app_version: str = ""
+    sdk_version: str = ""
+    cli_version: str = ""
+    latest: bool = False
+    update_available: bool = False
+    newest_version: str = ""
+    download_url: str = CLI_DOWNLOAD_URL
+    status_line: str = ""
+
+    def summary(self) -> str:
+        if self.cli_version and self.update_available and self.newest_version:
+            return f"CLI {self.cli_version} — {self.newest_version} available"
+        if self.cli_version and self.latest:
+            return f"CLI {self.cli_version} — latest"
+        if self.cli_version:
+            return f"CLI {self.cli_version}"
+        first = self.raw.splitlines()[0] if self.raw else ""
+        return first or "Official CLI"
+
+
+def _semver_after_at(label: str) -> str:
+    if "@" not in label:
+        match = _SEMVER_RE.match(label.strip())
+        return match.group(1) if match else ""
+    match = _SEMVER_RE.match(label.split("@", 1)[1])
+    return match.group(1) if match else ""
+
+
+def parse_version_output(text: str) -> CliVersionInfo:
+    """Parse live `proton-drive version` text. CLI 0.8.0 ignores `-j` for this command."""
+    raw = (text or "").strip()
+    payload = raw
+    if raw.startswith("{"):
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            data = None
+        if isinstance(data, dict):
+            app = str(data.get("appVersion") or "").strip()
+            sdk = str(data.get("sdkVersion") or "").strip()
+            rebuilt = [
+                f"{_CLI_LINE}{app}" if app else "",
+                f"{_SDK_LINE}{sdk}" if sdk else "",
+            ]
+            reconstructed = "\n".join(line for line in rebuilt if line)
+            if reconstructed:
+                payload = reconstructed
+    lines = [line.strip() for line in payload.splitlines() if line.strip()]
+    app_line = next((line for line in lines if line.startswith(_CLI_LINE)), "")
+    sdk_line = next((line for line in lines if line.startswith(_SDK_LINE)), "")
+    app_version = app_line[len(_CLI_LINE) :].strip() if app_line else ""
+    sdk_version = sdk_line[len(_SDK_LINE) :].strip() if sdk_line else ""
+    cli_version = _semver_after_at(app_version)
+    latest = any(line == _LATEST_LINE for line in lines)
+    newer_match = None
+    for line in lines:
+        found = _NEWER_RE.search(line)
+        if found:
+            newer_match = found
+            break
+    update_available = newer_match is not None
+    newest_version = newer_match.group(1) if newer_match else (cli_version if latest else "")
+    if newer_match and not cli_version:
+        cli_version = newer_match.group(2)
+    download_url = CLI_DOWNLOAD_URL
+    for line in lines:
+        found = _DOWNLOAD_RE.search(line)
+        if found:
+            download_url = found.group(1).rstrip(".,)")
+            break
+    if latest:
+        status_line = _LATEST_LINE
+    elif update_available:
+        status_line = f"A newer version is available: {newest_version} (you have {cli_version})."
+    else:
+        status_line = "proton-drive version did not report latest or newer"
+    return CliVersionInfo(
+        raw=raw,
+        app_version=app_version,
+        sdk_version=sdk_version,
+        cli_version=cli_version,
+        latest=latest,
+        update_available=update_available,
+        newest_version=newest_version,
+        download_url=download_url if update_available else CLI_DOWNLOAD_URL,
+        status_line=status_line,
+    )
 
 
 class NotLoggedIn(CliError):
@@ -110,6 +219,31 @@ def join_path(base: str, name: str) -> str:
     return base.rstrip("/") + "/" + escape_segment(name)
 
 
+def album_cli_path(album: dict[str, Any]) -> str:
+    raw = album.get("path")
+    if isinstance(raw, str) and raw.startswith("/albums/") and raw != "/albums/":
+        return raw
+    name = node_name(album) if album.get("name") else ""
+    if name and name != "Unknown":
+        return join_path("/albums", name)
+    uid = str(album.get("uid") or "")
+    if uid:
+        return join_path("/albums", uid)
+    raise CliError("Album has no path, name, or UID")
+
+
+def photo_cli_path(node: dict[str, Any], fallback: str = "") -> str:
+    uid = str(node.get("uid") or node.get("nodeUid") or "")
+    if uid:
+        return f"/photos/{uid}"
+    raw = node.get("path")
+    if isinstance(raw, str) and raw.startswith("/photos/") and raw != "/photos/":
+        return raw
+    if fallback.startswith("/photos/") and fallback != "/photos/":
+        return fallback
+    raise CliError("Photo has no UID or path")
+
+
 def account_email(nodes: list[dict[str, Any]]) -> str | None:
     for node in nodes:
         owned = node.get("ownedBy") or {}
@@ -166,15 +300,22 @@ class ProtonDriveCli:
         except json.JSONDecodeError as exc:
             raise CliError(f"Invalid JSON from proton-drive: {stdout[:400]}") from exc
 
-    def version(self) -> str:
+    def version(self, *extra: str) -> str:
         proc = subprocess.run(
-            [self.binary, "version"],
+            [self.binary, "version", *extra],
             capture_output=True,
             text=True,
             timeout=30,
             check=False,
         )
         return (proc.stdout or proc.stderr or "").strip()
+
+    def version_info(self) -> CliVersionInfo:
+        json_text = self.version("-j")
+        info = parse_version_output(json_text)
+        if info.cli_version or info.latest or info.update_available:
+            return info
+        return parse_version_output(self.version())
 
     def list(self, path: str) -> list[dict[str, Any]]:
         data = self.run(["filesystem", "list", path])
@@ -274,6 +415,49 @@ class ProtonDriveCli:
         if isinstance(data, list):
             return data
         raise CliError(f"Unexpected album photos payload for {album_path}")
+
+    def album_create(self, name: str) -> dict[str, Any] | None:
+        data = self.run(["album", "create", name])
+        if data is None:
+            return None
+        if isinstance(data, dict):
+            return data
+        raise CliError("Unexpected album create payload")
+
+    def album_update(
+        self,
+        album_path: str,
+        *,
+        name: str | None = None,
+        cover_photo_uid: str | None = None,
+    ) -> dict[str, Any] | None:
+        args = ["album", "update"]
+        if name:
+            args.extend(["-n", name])
+        if cover_photo_uid:
+            args.extend(["-c", cover_photo_uid])
+        args.append(album_path)
+        data = self.run(args)
+        if data is None:
+            return None
+        if isinstance(data, dict):
+            return data
+        raise CliError(f"Unexpected album update payload for {album_path}")
+
+    def album_delete(self, album_path: str, *, force: bool = False, save: bool = False) -> None:
+        args = ["album", "delete"]
+        if force:
+            args.append("-f")
+        if save:
+            args.append("-s")
+        args.append(album_path)
+        self.run(args)
+
+    def album_add_photo(self, album_path: str, photo_paths: list[str]) -> Any:
+        return self.run(["album", "add-photo", album_path, *photo_paths])
+
+    def album_remove_photo(self, album_path: str, photo_paths: list[str]) -> Any:
+        return self.run(["album", "remove-photo", album_path, *photo_paths])
 
     def photo_download(self, remote_path: str, local_folder: str) -> None:
         self.run(
@@ -381,7 +565,9 @@ def _self_check() -> None:
     names = [node_name(i) for i in items]
     assert names, "My files is empty or unreadable"
     print("ok", find_binary())
-    print("ok", cli.version().splitlines()[0])
+    info = cli.version_info()
+    print("ok", info.summary())
+    print("ok", info.status_line)
     print("ok", len(items), "items in /my-files")
     print("ok account", account_email(items) or "unknown")
 

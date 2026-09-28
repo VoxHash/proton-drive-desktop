@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,7 @@ from proton_drive_linux.cli import (  # noqa: E402
     ProtonDriveCli,
     account_email,
     added_by_email,
+    album_cli_path,
     format_size,
     invitation_name,
     invitation_uid,
@@ -23,12 +25,63 @@ from proton_drive_linux.cli import (  # noqa: E402
     member_email,
     member_role,
     node_name,
+    parse_version_output,
+    photo_cli_path,
 )
+from proton_drive_linux.paths import CLI_DOWNLOAD_URL  # noqa: E402
 
 
 def test_join_path() -> None:
     assert join_path("/my-files", "a/b") == "/my-files/a\\/b"
     assert format_size(1024) == "1.0 KB"
+    assert album_cli_path({"name": {"ok": True, "value": "Trip"}}) == "/albums/Trip"
+    assert album_cli_path({"path": "/albums/Trip", "uid": "x"}) == "/albums/Trip"
+    assert photo_cli_path({"nodeUid": "abc"}) == "/photos/abc"
+    assert photo_cli_path({"uid": "xyz"}) == "/photos/xyz"
+
+
+def test_parse_version_latest() -> None:
+    raw = (
+        "Proton Drive CLI cli-drive@0.8.0+06e8c605\n"
+        "Proton Drive SDK js@0.21.0+06e8c605\n"
+        "You are running the latest version."
+    )
+    info = parse_version_output(raw)
+    assert info.cli_version == "0.8.0"
+    assert info.app_version == "cli-drive@0.8.0+06e8c605"
+    assert info.sdk_version == "js@0.21.0+06e8c605"
+    assert info.latest is True
+    assert info.update_available is False
+    assert info.newest_version == "0.8.0"
+    assert info.status_line == "You are running the latest version."
+    assert info.download_url == CLI_DOWNLOAD_URL
+    assert "latest" in info.summary()
+
+
+def test_parse_version_newer() -> None:
+    raw = (
+        "Proton Drive CLI cli-drive@0.7.0+06e8c605\n"
+        "Proton Drive SDK js@0.20.0+06e8c605\n"
+        "A newer version is available: 0.8.0 (you have 0.7.0).\n"
+        "Download at https://proton.me/download/drive/cli/index.html"
+    )
+    info = parse_version_output(raw)
+    assert info.cli_version == "0.7.0"
+    assert info.latest is False
+    assert info.update_available is True
+    assert info.newest_version == "0.8.0"
+    assert info.status_line == "A newer version is available: 0.8.0 (you have 0.7.0)."
+    assert info.download_url == "https://proton.me/download/drive/cli/index.html"
+    assert "0.8.0 available" in info.summary()
+
+
+def test_parse_version_incomplete() -> None:
+    raw = "Proton Drive CLI cli-drive@0.8.0+06e8c605\nProton Drive SDK js@0.21.0+06e8c605"
+    info = parse_version_output(raw)
+    assert info.cli_version == "0.8.0"
+    assert info.latest is False
+    assert info.update_available is False
+    assert "did not report" in info.status_line
 
 
 class CaptureCli(ProtonDriveCli):
@@ -63,6 +116,28 @@ def test_filesystem_mutate_commands() -> None:
     ]
 
 
+def test_album_mutate_commands() -> None:
+    cli = CaptureCli()
+    cli.album_create("Summer")
+    cli.album_update("/albums/Summer", name="Trip")
+    cli.album_update("/albums/Trip", cover_photo_uid="uid-1")
+    cli.album_add_photo("/albums/Trip", ["/photos/abc"])
+    cli.album_remove_photo("/albums/Trip", ["/photos/abc"])
+    cli.album_delete("/albums/Trip")
+    cli.album_delete("/albums/Trip", save=True, force=True)
+    cli.album_photos("/albums/Trip", load_details=False)
+    assert cli.calls == [
+        (["album", "create", "Summer"], True),
+        (["album", "update", "-n", "Trip", "/albums/Summer"], True),
+        (["album", "update", "-c", "uid-1", "/albums/Trip"], True),
+        (["album", "add-photo", "/albums/Trip", "/photos/abc"], True),
+        (["album", "remove-photo", "/albums/Trip", "/photos/abc"], True),
+        (["album", "delete", "/albums/Trip"], True),
+        (["album", "delete", "-f", "-s", "/albums/Trip"], True),
+        (["album", "photos", "/albums/Trip"], True),
+    ]
+
+
 def test_invitation_helpers() -> None:
     item = {
         "uid": "inv-uid-1",
@@ -77,6 +152,50 @@ def test_invitation_helpers() -> None:
     assert member_email(item) == "reviewer@proton.me"
     assert member_role(item) == "editor"
     assert invitation_uid({"invitationUid": "legacy"}) == "legacy"
+
+
+def test_live_version_check() -> None:
+    cli = ProtonDriveCli()
+    proc = subprocess.run(
+        [cli.binary, "version", "--help"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    help_text = f"{proc.stdout}\n{proc.stderr}"
+    assert "Proton Drive CLI" in help_text
+    json_proc = subprocess.run(
+        [cli.binary, "version", "-j"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    json_text = (json_proc.stdout or json_proc.stderr or "").strip()
+    assert "Proton Drive CLI" in json_text
+    try:
+        json.loads(json_text)
+        raise AssertionError("proton-drive version -j unexpectedly returned JSON")
+    except json.JSONDecodeError:
+        pass
+    raw = cli.version()
+    parsed = parse_version_output(raw)
+    info = cli.version_info()
+    assert parsed.cli_version
+    assert parsed.cli_version.count(".") == 2
+    assert info.cli_version == parsed.cli_version
+    assert info.latest or info.update_available or "did not report" in info.status_line
+    if info.latest:
+        assert info.update_available is False
+        assert "latest version" in info.status_line
+    if info.update_available:
+        assert info.newest_version
+        assert "newer version is available" in info.status_line.lower()
+        assert info.download_url.startswith("https://proton.me/")
+    json_parsed = parse_version_output(json_text)
+    assert json_parsed.cli_version == info.cli_version
+    print("version ok", info.cli_version, info.status_line, "json-flag-text", json_parsed.latest or json_parsed.update_available)
 
 
 def test_live_my_files() -> None:
@@ -108,6 +227,61 @@ def test_live_photos_timeline() -> None:
     info = cli.info(f"/photos/{first['nodeUid']}")
     assert node_name(info)
     print("photos ok", len(items), "albums", len(albums), node_name(info))
+
+
+def test_live_album_management() -> None:
+    cli = ProtonDriveCli()
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S")
+    name = f"pdl-album-{stamp}"
+    renamed = f"{name}-renamed"
+    created_names = {name, renamed, "pdl-album-20260928084712"}
+    path = join_path("/albums", name)
+    renamed_path = join_path("/albums", renamed)
+    try:
+        created = cli.album_create(name)
+        assert created is None or isinstance(created, dict)
+        if isinstance(created, dict):
+            assert node_name(created) == name
+            assert created.get("uid")
+        albums = cli.album_list()
+        names = {node_name(a) for a in albums}
+        assert name in names, names
+        timeline = cli.photo_timeline()
+        assert timeline, "expected real Photos timeline"
+        uid = str(timeline[0]["nodeUid"])
+        photo_path = photo_cli_path({"nodeUid": uid})
+        added = cli.album_add_photo(path, [photo_path])
+        if isinstance(added, list) and added and isinstance(added[0], dict):
+            assert added[0].get("ok") is True or added[0].get("uid")
+        photos = cli.album_photos(path)
+        photo_uids = {str(p.get("uid") or p.get("nodeUid") or "") for p in photos}
+        assert uid in photo_uids, photo_uids
+        cli.album_update(path, name=renamed)
+        albums = cli.album_list()
+        names = {node_name(a) for a in albums}
+        assert renamed in names
+        assert name not in names
+        cli.album_remove_photo(renamed_path, [photo_path])
+        photos = cli.album_photos(renamed_path)
+        photo_uids = {str(p.get("uid") or p.get("nodeUid") or "") for p in photos}
+        assert uid not in photo_uids
+        cli.album_delete(renamed_path, save=True)
+        albums = cli.album_list()
+        names = {node_name(a) for a in albums}
+        assert renamed not in names
+        print("album management ok", renamed, "photo", uid[:24])
+    finally:
+        try:
+            live = cli.album_list()
+        except CliError:
+            live = []
+        for album in live:
+            album_name = node_name(album)
+            if album_name in created_names or album_name.startswith(f"pdl-album-{stamp}"):
+                try:
+                    cli.album_delete(join_path("/albums", album_name), save=True)
+                except CliError:
+                    pass
 
 
 def test_live_sharing_and_invitations() -> None:
@@ -153,6 +327,71 @@ def test_empty_trash_help() -> None:
     trash = cli.list("/trash")
     assert isinstance(trash, list)
     print("empty-trash help ok; live empty-trash skipped, trash already has", len(trash), "user item(s)")
+
+
+def test_delete_help_and_command() -> None:
+    cli = CaptureCli()
+    cli.delete("/trash/pdl-del-sample")
+    assert cli.calls == [(["filesystem", "delete", "/trash/pdl-del-sample"], False)]
+    assert all("empty-trash" not in args for args, _json in cli.calls)
+    live = ProtonDriveCli()
+    proc = subprocess.run(
+        [live.binary, "filesystem", "delete", "--help"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    text = f"{proc.stdout}\n{proc.stderr}".lower()
+    assert "filesystem delete" in text
+    assert "trashed" in text
+    assert "permanently" in text
+    print("delete help ok; per-item delete is distinct from empty-trash")
+
+
+def test_live_permanent_delete() -> None:
+    cli = ProtonDriveCli()
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S")
+    name = f"pdl-del-{stamp}"
+    my_path = join_path("/my-files", name)
+    trash_path = join_path("/trash", name)
+    before = {node_name(n) for n in cli.list("/trash")}
+    try:
+        cli.mkdir("/my-files", name)
+        names = {node_name(n) for n in cli.list("/my-files")}
+        assert name in names
+        cli.trash(my_path)
+        trash_names = {node_name(n) for n in cli.list("/trash")}
+        assert name in trash_names
+        cli.delete(trash_path)
+        after = {node_name(n) for n in cli.list("/trash")}
+        assert name not in after
+        for existing in before:
+            assert existing in after, existing
+        print("permanent delete ok", name, "other trash kept", len(after))
+    finally:
+        try:
+            live = cli.list("/my-files")
+        except CliError:
+            live = []
+        for node in live:
+            node_label = node_name(node)
+            if node_label == name or node_label.startswith(f"pdl-del-{stamp}"):
+                try:
+                    cli.trash(join_path("/my-files", node_label))
+                except CliError:
+                    pass
+        try:
+            trash_nodes = cli.list("/trash")
+        except CliError:
+            trash_nodes = []
+        for node in trash_nodes:
+            node_label = node_name(node)
+            if node_label == name or node_label.startswith(f"pdl-del-{stamp}"):
+                try:
+                    cli.delete(join_path("/trash", node_label))
+                except CliError:
+                    pass
 
 
 def test_live_rename_copy_move() -> None:
@@ -210,11 +449,19 @@ def test_live_rename_copy_move() -> None:
 
 if __name__ == "__main__":
     test_join_path()
+    test_parse_version_latest()
+    test_parse_version_newer()
+    test_parse_version_incomplete()
     test_filesystem_mutate_commands()
+    test_album_mutate_commands()
     test_invitation_helpers()
+    test_live_version_check()
     test_live_my_files()
     test_live_photos_timeline()
+    test_live_album_management()
     test_live_sharing_and_invitations()
     test_empty_trash_help()
+    test_delete_help_and_command()
+    test_live_permanent_delete()
     test_live_rename_copy_move()
     print("all checks passed")

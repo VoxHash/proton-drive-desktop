@@ -8,6 +8,7 @@ APP_ID = "io.github.voxhash.ProtonDriveLinux"
 APP_ICON_NAME = APP_ID
 HELP_URL = "https://proton.me/support/drive"
 CLI_HELP_URL = "https://proton.me/support/drive-cli"
+CLI_DOWNLOAD_URL = "https://proton.me/download/drive/cli/index.html"
 DRIVE_WEB_URL = "https://drive.proton.me"
 ACCOUNT_URL = "https://account.proton.me"
 TERMS_URL = "https://proton.me/legal/terms"
