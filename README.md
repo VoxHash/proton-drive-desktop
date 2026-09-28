@@ -10,8 +10,9 @@ Not affiliated with Proton AG.
 
 ## Features
 
-- Live listing of My files, Shared with me, and Trash
+- Live listing of My files, Photos, Shared with me, and Trash
 - Upload, download, new folder, trash, restore
+- System tray on KDE/Ayatana: close hides, Quit from the tray exits
 - Uses the official CLI session in GNOME Keyring / Secret Service
 - Proton dark theme (`#6d4aff` / `#16141c`)
 

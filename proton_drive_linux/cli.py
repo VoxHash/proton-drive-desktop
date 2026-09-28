@@ -43,7 +43,7 @@ def node_name(node: dict[str, Any]) -> str:
 
 
 def node_size(node: dict[str, Any]) -> int | None:
-    if node.get("type") != "file":
+    if node.get("type") not in ("file", "photo"):
         return None
     rev = node.get("activeRevision") or {}
     for key in ("claimedSize", "storageSize"):
@@ -173,6 +173,57 @@ class ProtonDriveCli:
     def download(self, remote_path: str, local_folder: str) -> None:
         self.run(
             ["filesystem", "download", remote_path, local_folder, "-f", "skip", "-d", "merge"],
+            json_out=False,
+            timeout=3600,
+        )
+
+    def info(self, path: str) -> dict[str, Any]:
+        data = self.run(["filesystem", "info", path])
+        if isinstance(data, dict):
+            return data
+        raise CliError(f"Unexpected info payload for {path}")
+
+    def photo_timeline(self, load_details: bool = False) -> list[dict[str, Any]]:
+        args = ["photo", "timeline"]
+        if load_details:
+            args.append("-d")
+        data = self.run(args, timeout=300)
+        if data is None:
+            return []
+        if isinstance(data, list):
+            return data
+        raise CliError("Unexpected photo timeline payload")
+
+    def album_list(self) -> list[dict[str, Any]]:
+        data = self.run(["album", "list"])
+        if data is None:
+            return []
+        if isinstance(data, list):
+            return [item if isinstance(item, dict) else {"name": str(item)} for item in data]
+        raise CliError("Unexpected album list payload")
+
+    def album_photos(self, album_path: str, load_details: bool = True) -> list[dict[str, Any]]:
+        args = ["album", "photos"]
+        if load_details:
+            args.append("-d")
+        args.append(album_path)
+        data = self.run(args, timeout=300)
+        if data is None:
+            return []
+        if isinstance(data, list):
+            return data
+        raise CliError(f"Unexpected album photos payload for {album_path}")
+
+    def photo_download(self, remote_path: str, local_folder: str) -> None:
+        self.run(
+            ["photo", "download", remote_path, local_folder, "-c", "rename"],
+            json_out=False,
+            timeout=3600,
+        )
+
+    def photo_upload(self, local_paths: list[str]) -> None:
+        self.run(
+            ["photo", "upload", *local_paths, "-c", "skip"],
             json_out=False,
             timeout=3600,
         )

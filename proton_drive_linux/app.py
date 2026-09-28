@@ -26,10 +26,12 @@ from .cli import (
     node_name,
     node_size,
 )
+from .tray import StatusNotifierTray
 
 APP_ID = "io.github.voxhash.ProtonDriveLinux"
 SECTIONS = (
     ("My files", "/my-files", "folder-documents-symbolic"),
+    ("Photos", "/photos", "folder-pictures-symbolic"),
     ("Shared with me", "/shared-with-me", "system-users-symbolic"),
     ("Trash", "/trash", "user-trash-symbolic"),
 )
@@ -61,6 +63,23 @@ def _format_when(iso: str) -> str:
         return iso
 
 
+def _format_day(iso_date: str) -> str:
+    try:
+        return dt.datetime.strptime(iso_date, "%Y-%m-%d").strftime("%b %d, %Y")
+    except ValueError:
+        return iso_date
+
+
+def _photos_day(path: str) -> str | None:
+    prefix = "/photos/"
+    if not path.startswith(prefix):
+        return None
+    day = path[len(prefix) :]
+    if len(day) == 10 and day[4] == "-" and day[7] == "-":
+        return day
+    return None
+
+
 class DriveWindow(Adw.ApplicationWindow):
     def __init__(self, app: Adw.Application) -> None:
         super().__init__(application=app, title="Proton Drive")
@@ -72,6 +91,7 @@ class DriveWindow(Adw.ApplicationWindow):
         self.busy = False
         self.email = ""
         self.store = Gio.ListStore.new(DriveItem)
+        self._timeline_cache: list | None = None
         self._build()
         self.reload()
 
@@ -220,7 +240,17 @@ class DriveWindow(Adw.ApplicationWindow):
         image = box.get_first_child()
         label = image.get_next_sibling()
         image.set_pixel_size(18)
-        icon = "folder" if item.kind == "folder" else "text-x-generic"
+        media = str(item.node.get("mediaType") or "")
+        if item.kind == "folder":
+            icon = "folder"
+        elif item.kind in ("day", "album"):
+            icon = "folder-pictures"
+        elif item.kind == "photo" and media.startswith("video"):
+            icon = "video-x-generic"
+        elif item.kind == "photo":
+            icon = "image-x-generic"
+        else:
+            icon = "text-x-generic"
         image.set_from_icon_name(icon)
         label.set_text(item.name)
         label.set_tooltip_text(item.path)
@@ -231,7 +261,16 @@ class DriveWindow(Adw.ApplicationWindow):
 
     def _size_bind(self, _factory, list_item) -> None:
         item: DriveItem = list_item.get_item()
-        list_item.get_child().set_text("Folder" if item.kind == "folder" else format_size(item.size))
+        if item.kind == "folder":
+            text = "Folder"
+        elif item.kind == "day":
+            count = int(item.node.get("count") or 0)
+            text = f"{count} items"
+        elif item.kind == "album":
+            text = "Album"
+        else:
+            text = format_size(item.size)
+        list_item.get_child().set_text(text)
 
     def _set_busy(self, busy: bool, message: str = "") -> None:
         self.busy = busy
@@ -289,13 +328,131 @@ class DriveWindow(Adw.ApplicationWindow):
         self.current_path = self.crumbs[-1][1]
         self.reload()
 
+    def open_section(self, path: str) -> None:
+        index = 0
+        row = self.side_list.get_row_at_index(0)
+        while row is not None:
+            if getattr(row, "path", None) == path:
+                self.side_list.select_row(row)
+                self._on_section(self.side_list, row)
+                return
+            index += 1
+            row = self.side_list.get_row_at_index(index)
+
     def reload(self) -> None:
         path = self.current_path
         self._set_busy(True, f"Reading {path}")
         self.path_title.set_title(self.crumbs[-1][0])
         self.path_title.set_subtitle(path)
         self.back_btn.set_sensitive(len(self.crumbs) > 1)
+        if self.section == "/photos":
+            cache = self._timeline_cache
+            self._bg(lambda: self._load_photos(path, cache), self._on_photos)
+            return
         self._bg(lambda: self.cli.list(path), self._on_list)
+
+    def _load_photos(self, path: str, cache: list | None):
+        timeline = cache if cache is not None else self.cli.photo_timeline()
+        if path == "/photos":
+            return {"kind": "root", "timeline": timeline, "albums": self.cli.album_list()}
+        if path.startswith("/albums/"):
+            return {"kind": "album", "timeline": timeline, "photos": self.cli.album_photos(path)}
+        day = _photos_day(path)
+        if day is None:
+            return {"kind": "root", "timeline": timeline, "albums": self.cli.album_list()}
+        day_items = [item for item in timeline if str(item.get("captureTime") or "").startswith(day)]
+        nodes = []
+        enrich = len(day_items) <= 40
+        for item in day_items:
+            uid = str(item.get("nodeUid") or "")
+            node = None
+            if enrich and uid:
+                try:
+                    node = self.cli.info(f"/photos/{uid}")
+                except CliError:
+                    node = None
+            if node is None:
+                node = {
+                    "type": "photo",
+                    "name": _format_when(str(item.get("captureTime") or "")),
+                    "uid": uid,
+                    "modificationTime": item.get("captureTime"),
+                    "photo": item,
+                }
+            nodes.append((node, uid))
+        return {"kind": "day", "timeline": timeline, "nodes": nodes}
+
+    def _on_photos(self, payload: dict) -> None:
+        self._set_busy(False)
+        self.login_btn.set_visible(False)
+        self.store.remove_all()
+        timeline = payload.get("timeline") or []
+        self._timeline_cache = timeline
+        kind = payload.get("kind")
+        if kind == "root":
+            albums = payload.get("albums") or []
+            for album in albums:
+                name = node_name(album) if album.get("name") else str(album.get("path") or album.get("uid") or "Album")
+                album_path = str(album.get("path") or join_path("/albums", name))
+                node = dict(album)
+                node["type"] = "album"
+                node["name"] = name
+                self.store.append(DriveItem(node, album_path))
+            days: dict[str, list] = {}
+            for item in timeline:
+                day = str(item.get("captureTime") or "")[:10] or "unknown"
+                days.setdefault(day, []).append(item)
+            for day in sorted(days, reverse=True):
+                group = days[day]
+                latest = group[0].get("captureTime") or ""
+                node = {
+                    "type": "day",
+                    "name": _format_day(day),
+                    "count": len(group),
+                    "modificationTime": latest,
+                }
+                self.store.append(DriveItem(node, f"/photos/{day}"))
+        elif kind == "album":
+            for node in payload.get("photos") or []:
+                uid = str(node.get("uid") or node.get("nodeUid") or "")
+                photo_path = f"/photos/{uid}" if uid else self.current_path
+                if node.get("type") != "photo":
+                    node = dict(node)
+                    node["type"] = "photo"
+                self.store.append(DriveItem(node, photo_path))
+        else:
+            for node, uid in payload.get("nodes") or []:
+                if node.get("type") != "photo":
+                    node = dict(node)
+                    node["type"] = "photo"
+                capture = (node.get("photo") or {}).get("captureTime")
+                if capture and not node.get("modificationTime"):
+                    node = dict(node)
+                    node["modificationTime"] = capture
+                self.store.append(DriveItem(node, f"/photos/{uid}"))
+        email = self.email
+        for i in range(self.store.get_n_items()):
+            item = self.store.get_item(i)
+            if isinstance(item, DriveItem):
+                found = account_email([item.node])
+                if found:
+                    email = found
+                    break
+        if email:
+            self.email = email
+        self.account_label.set_text(self.email or "Signed in")
+        count = self.store.get_n_items()
+        if count == 0:
+            self.empty.set_title("No photos")
+            self.empty.set_description("Photos come from the official CLI timeline for this Proton account.")
+            self.stack.set_visible_child_name("empty")
+            self.status.set_text("0 items")
+            return
+        self.empty.set_title("This folder is empty")
+        self.empty.set_description("Upload files with the official Proton Drive CLI session on this machine.")
+        self.stack.set_visible_child_name("list")
+        extra = f"{len(timeline)} photos" if kind == "root" else (self.email or "Proton Drive")
+        self.status.set_text(f"{count} items · {extra}")
 
     def _on_list(self, nodes: list) -> None:
         self._set_busy(False)
@@ -339,7 +496,7 @@ class DriveWindow(Adw.ApplicationWindow):
         item = self.store.get_item(position)
         if not isinstance(item, DriveItem):
             return
-        if item.kind == "folder":
+        if item.kind in ("folder", "day", "album"):
             self.crumbs.append((item.name, item.path))
             self.current_path = item.path
             self.reload()
@@ -351,6 +508,9 @@ class DriveWindow(Adw.ApplicationWindow):
         self._bg(self.cli.login, lambda *_: self.reload(), self._fail)
 
     def _new_folder(self, *_args) -> None:
+        if self.section == "/photos":
+            self._toast("Create folders in My files. Photos are grouped by capture date.")
+            return
         dialog = Adw.MessageDialog(transient_for=self, heading="New folder", body="Folder name")
         entry = Gtk.Entry(placeholder_text="Name")
         dialog.set_extra_child(entry)
@@ -389,6 +549,9 @@ class DriveWindow(Adw.ApplicationWindow):
             return
         parent = self.current_path
         self._set_busy(True, f"Uploading {len(paths)} item(s)")
+        if self.section == "/photos":
+            self._bg(lambda: self.cli.photo_upload(paths), lambda *_: (self._toast("Upload finished"), self.reload()))
+            return
         self._bg(lambda: self.cli.upload(paths, parent), lambda *_: (self._toast("Upload finished"), self.reload()))
 
     def _download(self, *_args) -> None:
@@ -399,12 +562,18 @@ class DriveWindow(Adw.ApplicationWindow):
         self._download_item(item)
 
     def _download_item(self, item: DriveItem) -> None:
+        if item.kind in ("day", "album"):
+            self._toast("Open a day or album, then select a photo")
+            return
         dest = str(Path.home() / "Downloads")
         Path(dest).mkdir(parents=True, exist_ok=True)
         self._set_busy(True, f"Downloading {item.name}")
 
         def work():
-            self.cli.download(item.path, dest)
+            if item.kind == "photo" or self.section == "/photos":
+                self.cli.photo_download(item.path, dest)
+            else:
+                self.cli.download(item.path, dest)
             return dest
 
         def done(folder: str) -> None:
@@ -428,6 +597,9 @@ class DriveWindow(Adw.ApplicationWindow):
 class DriveApp(Adw.Application):
     def __init__(self) -> None:
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.FLAGS_NONE)
+        self._window: DriveWindow | None = None
+        self._tray: StatusNotifierTray | None = None
+        self._allow_quit = False
         self.connect("activate", self._on_activate)
 
     def _on_activate(self, _app) -> None:
@@ -440,10 +612,47 @@ class DriveApp(Adw.Application):
                 provider,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
-        win = self.props.active_window
-        if win is None:
-            win = DriveWindow(self)
-        win.present()
+        if self._window is None:
+            self._window = DriveWindow(self)
+            self._window.connect("close-request", self._on_window_close)
+            self._tray = StatusNotifierTray(
+                app_id=APP_ID,
+                title="Proton Drive",
+                icon_name="folder-remote",
+                on_show=self.show_window,
+                on_hide=self.hide_window,
+                on_open_files=self.open_my_files,
+                on_quit=self.quit_from_tray,
+            )
+            self._tray.start()
+        self._window.present()
+
+    def _on_window_close(self, *_args) -> bool:
+        if self._allow_quit or self._tray is None or not self._tray.started:
+            return False
+        self.hide_window()
+        return True
+
+    def show_window(self) -> None:
+        if self._window is not None:
+            self._window.set_visible(True)
+            self._window.present()
+
+    def hide_window(self) -> None:
+        if self._window is not None:
+            self._window.set_visible(False)
+
+    def open_my_files(self) -> None:
+        self.show_window()
+        if self._window is not None:
+            self._window.open_section("/my-files")
+
+    def quit_from_tray(self) -> None:
+        self._allow_quit = True
+        if self._tray is not None:
+            self._tray.stop()
+            self._tray = None
+        self.quit()
 
 
 def main() -> int:

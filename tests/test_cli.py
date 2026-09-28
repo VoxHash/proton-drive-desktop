@@ -39,7 +39,23 @@ def test_live_my_files() -> None:
     print("live ok", email, "files", len(items), "shared", len(shared), "trash", len(trash))
 
 
+def test_live_photos_timeline() -> None:
+    cli = ProtonDriveCli()
+    items = cli.photo_timeline()
+    assert isinstance(items, list)
+    assert items, "expected real Photos timeline"
+    first = items[0]
+    assert first.get("nodeUid")
+    assert first.get("captureTime")
+    albums = cli.album_list()
+    assert isinstance(albums, list)
+    info = cli.info(f"/photos/{first['nodeUid']}")
+    assert node_name(info)
+    print("photos ok", len(items), "albums", len(albums), node_name(info))
+
+
 if __name__ == "__main__":
     test_join_path()
     test_live_my_files()
+    test_live_photos_timeline()
     print("all checks passed")
