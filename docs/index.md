@@ -11,3 +11,4 @@
 - [Troubleshooting](troubleshooting.md)
 - [FAQ](faq.md)
 - [Examples](examples/example-01.md)
+- [Install and launch](examples/example-02.md)

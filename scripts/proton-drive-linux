@@ -2,7 +2,12 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+here = Path(__file__).resolve()
+for candidate in (here.parent.parent, here.parent.parent / "lib" / "proton-drive-linux"):
+    if (candidate / "proton_drive_linux").is_dir():
+        sys.path.insert(0, str(candidate))
+        break
+
 from proton_drive_linux.app import main
 
 if __name__ == "__main__":

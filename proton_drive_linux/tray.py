@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
+from pathlib import Path
 
-from gi.repository import Gio, GLib
+import gi
+
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import GdkPixbuf, Gio, GLib
 
 SNI_INTERFACE = "org.kde.StatusNotifierItem"
 SNI_PATH = "/StatusNotifierItem"
@@ -167,6 +171,29 @@ def _pack_props(props: dict) -> dict:
     return packed
 
 
+def _png_to_sni_pixmap(path: Path) -> list[tuple[int, int, bytes]]:
+    if not path.is_file():
+        return []
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file(str(path))
+    pixbuf = pixbuf.add_alpha(False, 0, 0, 0)
+    width, height = pixbuf.get_width(), pixbuf.get_height()
+    channels = pixbuf.get_n_channels()
+    stride = pixbuf.get_rowstride()
+    pixels = pixbuf.get_pixels()
+    data = bytearray(width * height * 4)
+    index = 0
+    for row in range(height):
+        for col in range(width):
+            offset = row * stride + col * channels
+            red, green, blue, alpha = pixels[offset : offset + 4]
+            data[index] = alpha
+            data[index + 1] = red
+            data[index + 2] = green
+            data[index + 3] = blue
+            index += 4
+    return [(width, height, bytes(data))]
+
+
 class StatusNotifierTray:
     def __init__(
         self,
@@ -174,17 +201,28 @@ class StatusNotifierTray:
         app_id: str,
         title: str,
         icon_name: str,
+        icon_theme_path: str = "",
+        icon_png: str | Path | None = None,
         on_show: Callable[[], None],
         on_hide: Callable[[], None],
         on_open_files: Callable[[], None],
+        on_open_sync: Callable[[], None],
+        on_open_browser: Callable[[], None],
+        on_settings: Callable[[], None],
+        on_help: Callable[[], None],
         on_quit: Callable[[], None],
     ) -> None:
         self.app_id = app_id
         self.title = title
         self.icon_name = icon_name
+        self.icon_theme_path = icon_theme_path
         self.on_show = on_show
         self.on_hide = on_hide
         self.on_open_files = on_open_files
+        self.on_open_sync = on_open_sync
+        self.on_open_browser = on_open_browser
+        self.on_settings = on_settings
+        self.on_help = on_help
         self.on_quit = on_quit
         self.available = False
         self.started = False
@@ -194,13 +232,18 @@ class StatusNotifierTray:
         self._conn: Gio.DBusConnection | None = None
         self._bus_name = f"org.kde.StatusNotifierItem-{app_id}-{os.getpid()}"
         self._menu_revision = 1
+        self._pixmaps = _png_to_sni_pixmap(Path(icon_png)) if icon_png else []
         self._menu_items = {
             1: ("Show window", self._run_show),
             2: ("Hide", self._run_hide),
             4: ("Open My files", self._run_open_files),
-            6: ("Quit", self._run_quit),
+            5: ("Open sync folder", self._run_open_sync),
+            6: ("Open in browser", self._run_open_browser),
+            8: ("Settings", self._run_settings),
+            9: ("Help", self._run_help),
+            11: ("Quit", self._run_quit),
         }
-        self._separators = {3, 5}
+        self._separators = {3, 7, 10}
 
     def start(self) -> bool:
         if not watcher_available():
@@ -238,6 +281,18 @@ class StatusNotifierTray:
 
     def _run_open_files(self) -> None:
         self.on_open_files()
+
+    def _run_open_sync(self) -> None:
+        self.on_open_sync()
+
+    def _run_open_browser(self) -> None:
+        self.on_open_browser()
+
+    def _run_settings(self) -> None:
+        self.on_settings()
+
+    def _run_help(self) -> None:
+        self.on_help()
 
     def _run_quit(self) -> None:
         self.on_quit()
@@ -295,7 +350,7 @@ class StatusNotifierTray:
             "Status": _v_string("Active"),
             "WindowId": GLib.Variant("i", 0),
             "IconName": _v_string(self.icon_name),
-            "IconPixmap": empty_pixmaps,
+            "IconPixmap": GLib.Variant("a(iiay)", self._pixmaps) if self._pixmaps else empty_pixmaps,
             "OverlayIconName": _v_string(""),
             "OverlayIconPixmap": empty_pixmaps,
             "AttentionIconName": _v_string(""),
@@ -304,7 +359,7 @@ class StatusNotifierTray:
             "ToolTip": GLib.Variant("(sa(iiay)ss)", (self.icon_name, [], self.title, "Proton Drive")),
             "ItemIsMenu": _v_bool(False),
             "Menu": GLib.Variant("o", DBUSMENU_PATH),
-            "IconThemePath": _v_string(""),
+            "IconThemePath": _v_string(self.icon_theme_path),
         }
 
     def _sni_get_property(self, *_args) -> GLib.Variant | None:
@@ -335,7 +390,7 @@ class StatusNotifierTray:
         return {"label": label, "enabled": True, "visible": True, "type": "standard"}
 
     def _layout_tuple(self, item_id: int) -> tuple:
-        child_ids: list[int] = [1, 2, 3, 4, 5, 6] if item_id == 0 else []
+        child_ids: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] if item_id == 0 else []
         children = []
         for child_id in child_ids:
             children.append(GLib.Variant("(ia{sv}av)", self._layout_tuple(child_id)))

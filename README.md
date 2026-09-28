@@ -4,14 +4,17 @@
 [![CLI](https://img.shields.io/badge/proton--drive-0.8.0-6d4aff.svg)](https://proton.me/download/drive/cli/index.html)
 [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](#installation)
 
-Unofficial GTK4 / libadwaita desktop GUI for **Proton’s official Drive CLI**. Proton has no Linux Drive GUI yet; Mail and Pass on this machine are Electron apps. This app matches that Drive layout (My files, Shared with me, Trash) and talks only to `proton-drive` already signed in on the system.
+Unofficial GTK4 / libadwaita desktop GUI for **Proton’s official Drive CLI**. Proton has no Linux Drive GUI yet. This app matches Drive’s My files / Photos / Shared / Trash layout and talks only to `proton-drive` already signed in on the system.
 
-Not affiliated with Proton AG.
+Not affiliated with Proton AG. The app/tray icon is Proton’s official Drive mark from [ProtonDriveApps/android-drive](https://github.com/ProtonDriveApps/android-drive) (GPL-3.0-or-later).
 
 ## Features
 
 - Live listing of My files, Photos, Shared with me, and Trash
-- Upload, download, new folder, trash, restore
+- Share and invitations from the UI (`proton-drive sharing` / `invitation list`)
+- Upload, download, new folder, rename, copy, move, trash, restore, empty trash
+- Help and Settings (official Drive Help URL, live CLI account, theme, download folder, local My files folder, CLI path, autostart)
+- Always-on local My files folder (official CLI 0.8.0 cannot FUSE-mount; skip/merge download/upload in a separate process)
 - System tray on KDE/Ayatana: close hides, Quit from the tray exits
 - Uses the official CLI session in GNOME Keyring / Secret Service
 - Proton dark theme (`#6d4aff` / `#16141c`)
@@ -21,35 +24,74 @@ Not affiliated with Proton AG.
 ```bash
 proton-drive version
 python3 tests/test_cli.py
+python3 tests/test_packaging.py
+python3 tests/test_sync.py
+make user-install
 proton-drive-linux
 ```
 
 ## Installation
 
-Official CLI must already be installed (`~/.local/bin/proton-drive`). Then:
+This is a Python GTK wrapper. It does **not** ship Proton’s CLI binary. Install the official CLI first, then this GUI.
+
+**1. Official CLI** (required), from [proton.me/download/drive/cli](https://proton.me/download/drive/cli/index.html) or AUR `proton-drive-cli` / `proton-drive-cli-bin`:
+
+```bash
+chmod +x proton-drive
+mv proton-drive ~/.local/bin/proton-drive
+proton-drive auth login
+proton-drive version
+```
+
+**2. GUI packages on Garuda/Arch** (same stack Proton VPN uses: GTK4 + Python):
+
+```bash
+sudo pacman -S --needed python python-gobject gtk4 libadwaita gdk-pixbuf2 libsecret
+```
+
+**3. Install this app for the current user** (desktop file, hicolor icons, AppStream metainfo):
 
 ```bash
 cd ~/Projects/proton-drive-linux
-ln -sfn "$PWD/scripts/proton-drive-linux" ~/.local/bin/proton-drive-linux
-install -Dm644 data/io.github.voxhash.ProtonDriveLinux.desktop ~/.local/share/applications/
+make user-install
 proton-drive-linux
 ```
 
+From a checkout without `make`: `python3 scripts/proton-drive-linux`.
+
+### How this compares to Proton Pass and Proton VPN on this OS
+
+| App | What is installed here | Install ease |
+| --- | --- | --- |
+| Proton Pass | Flatpak `me.proton.Pass` from Flathub | One command / Discover |
+| Proton VPN | Native `proton-vpn-gtk-app` from Arch extra | `pacman -S proton-vpn-gtk-app` |
+| Proton Drive | No official Linux GUI. This wrapper + official CLI | `make user-install` after CLI is on PATH |
+
+A GitHub source Release is shippable now. It is **not** as easy as Pass (Flathub) or VPN (official Arch extra). Remaining blockers: no Flathub listing, no signed Arch extra package, the GUI is unsigned Python, and the official CLI must be installed separately (do not redistribute Proton’s prebuilt CLI in this repo). A real AUR PKGBUILD lives in `packaging/arch/PKGBUILD` and depends on the CLI as an optional AUR package.
+
 ## Usage
 
-Browse folders with Enter or the Open button. Upload and download use the portal file dialogs. Sign-in, if needed, is `proton-drive auth login` in the browser.
+Open the primary menu (hamburger) for **Settings**, **Proton Drive Help**, and **About**. Browse folders with Enter or Open. Share (toolbar) invites people and manages public links via the official CLI. Pending invitations appear at the top of **Shared with me**. Rename, Copy, and Move use Adwaita dialogs and the live CLI. Empty trash is available in Trash after confirmation. Upload and download use the portal file dialogs. Settings can keep a local **My files folder** in sync with `/my-files` using official CLI download/upload in a separate process (not a FUSE mount). Sign-in, if needed, is `proton-drive auth login` in the browser.
 
 ## Configuration
 
-| Variable | Purpose | Default |
+| Variable / setting | Purpose | Default |
 | --- | --- | --- |
-| `PROTON_DRIVE_BIN` | Path to official CLI | `proton-drive` on PATH or `~/.local/bin/proton-drive` |
+| `PROTON_DRIVE_BIN` | Path to official CLI | `proton-drive` on PATH, Settings, or `~/.local/bin/proton-drive` |
+| Settings → Theme | Dark / Light / System | Dark |
+| Settings → Download folder | Where toolbar downloads are saved | `~/Downloads` |
+| Settings → My files folder | Always-on local copy of `/my-files` (skip/merge, not FUSE) | `~/Proton Drive` |
+| Settings → Start with this session | XDG autostart | Off |
+| `~/.config/proton-drive-linux/gui.json` | Persisted GUI settings | Created on first save |
 
 ## Examples
 
 ```bash
 python3 -m proton_drive_linux.cli
+python3 -m proton_drive_linux.sync --status
 python3 tests/test_cli.py
+python3 tests/test_packaging.py
+python3 tests/test_sync.py
 ```
 
 ## Roadmap
@@ -62,4 +104,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT. Proton, Proton Drive, Proton Mail, and Proton Pass are trademarks of Proton AG.
+MIT for this GUI. The Drive icon is GPL-3.0-or-later Proton AG artwork; see [LICENSE](LICENSE) and `data/icons/SOURCE`. Proton, Proton Drive, Proton Mail, Proton Pass, and Proton VPN are trademarks of Proton AG.
