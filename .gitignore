@@ -6,4 +6,5 @@ dist/
 build/
 .cache/
 *.log
-.DS_Store
+locale/
+*.mo
