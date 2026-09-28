@@ -10,6 +10,7 @@ proton-drive filesystem download REMOTE FOLDER -f skip -d merge
 proton-drive filesystem create-folder PARENT NAME
 proton-drive filesystem trash PATH
 proton-drive filesystem restore PATH
+proton-drive filesystem delete PATH
 proton-drive filesystem rename PATH NEW_NAME
 proton-drive filesystem copy [-n NAME] SOURCE TARGET_PARENT
 proton-drive filesystem move SOURCE TARGET_PARENT
@@ -17,6 +18,11 @@ proton-drive filesystem empty-trash
 proton-drive photo timeline -j
 proton-drive album list -j
 proton-drive album photos ALBUM -j
+proton-drive album create NAME -j
+proton-drive album update [-n NAME] [-c UID] ALBUM -j
+proton-drive album delete [-f] [-s] ALBUM -j
+proton-drive album add-photo ALBUM PHOTO... -j
+proton-drive album remove-photo ALBUM PHOTO... -j
 proton-drive photo download PATH FOLDER -c rename
 proton-drive photo upload LOCAL... -c skip
 proton-drive sharing status PATH -j
@@ -31,7 +37,10 @@ proton-drive invitation reject UID
 proton-drive auth login
 proton-drive auth logout
 proton-drive version
+proton-drive version -j
 ```
+
+`proton-drive version` prints the installed CLI/SDK labels and then either `You are running the latest version.` or `A newer version is available: X (you have Y).` plus `Download at https://proton.me/download/drive/cli/index.html`. The global `-j` flag is accepted but CLI 0.8.0 still prints that text (not JSON). `version --help` runs the same check rather than printing command help. Settings and About parse this output; they never download Proton binaries.
 
 Always-on local folder (not a FUSE mount; separate process):
 
@@ -41,4 +50,6 @@ python3 -m proton_drive_linux.sync --force
 python3 -m proton_drive_linux.sync --status
 ```
 
-CLI commands not in the GUI yet: `filesystem delete` (permanent per-item delete; Empty trash covers bulk), `album create|update|delete|add-photo|remove-photo`. Official CLI 0.8.0 has no `mount` / FUSE command.
+`--status` prints `~/.config/proton-drive-linux/sync-status.json` (worker state, last success, last error, files copied). Settings reads the same file plus `sync.lock`. Official CLI 0.8.0 has no `mount` / FUSE command and no Activity log. `filesystem delete` permanently removes one already-trashed item; `filesystem empty-trash` still clears all of `/trash`.
+
+Extract GTK UI strings with `make pot` / `make update-po`. `make user-install` runs `msgfmt` and installs `en/LC_MESSAGES/proton-drive-linux.mo`.

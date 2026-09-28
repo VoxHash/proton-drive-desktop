@@ -11,4 +11,4 @@ From the repo without installing:
 python3 scripts/proton-drive-linux
 ```
 
-After launch, Settings → Enable always-on folder uses official CLI download/upload. It is not a FUSE mount.
+After launch, Settings → Enable always-on folder uses official CLI download/upload. It is not a FUSE mount. Worker, last successful pass, files last pass, and last error update from the worker status file. Settings → Language is System default or English.

@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.11.0 — 2026-09-28
+
+- GNU gettext for the GTK UI: `_()` / `ngettext()`, `po/en.po`, and `make user-install` compiles and installs the English `.mo`
+- Settings → Language matches Proton Drive (System default or English). Changing language saves `gui.json` and restarts this Gio app so strings reload
+
+## 1.10.0 — 2026-09-28
+
+- Settings and About show the official CLI version from live `proton-drive version`, including whether Proton reports a newer CLI, with Download / CLI Help links to proton.me when an update exists (no Proton binary is downloaded into this repo)
+
+## 1.9.0 — 2026-09-28
+
+- Settings always-on folder activity: live worker running/stopped, last successful pass, files copied last pass, and last error from the niced `python3 -m proton_drive_linux.sync` lock and `~/.config/proton-drive-linux/sync-status.json` (official CLI has no Activity log)
+
+## 1.8.0 — 2026-09-28
+
+- Permanent per-item delete in Trash (`proton-drive filesystem delete`) with a destructive confirmation; Empty trash remains bulk-only
+
+## 1.7.0 — 2026-09-28
+
+- Photos albums: create, rename, delete, add photo, and remove photo from the GUI (`proton-drive album create|update|delete|add-photo|remove-photo`)
+
 ## 1.6.0 — 2026-09-28
 
 - Settings always-on folder: enable starts the niced CLI download/upload worker immediately, keeps the chosen path, and turns on session autostart so the local folder stays on after login (still not FUSE)

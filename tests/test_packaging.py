@@ -20,9 +20,10 @@ def test_config_roundtrip(tmp_path: Path | None = None) -> None:
     config.CONFIG_DIR = folder
     config.CONFIG_PATH = folder / "gui.json"
     try:
-        config.save({"theme": "light", "download_folder": str(folder), "cli_path": "", "autostart": False, "sync_folder": str(folder), "sync_enabled": False})
+        config.save({"theme": "light", "language": "en", "download_folder": str(folder), "cli_path": "", "autostart": False, "sync_folder": str(folder), "sync_enabled": False})
         loaded = config.load()
         assert loaded["theme"] == "light"
+        assert loaded["language"] == "en"
         assert loaded["download_folder"] == str(folder)
         assert loaded["sync_folder"] == str(folder)
         assert loaded["sync_enabled"] is False
@@ -47,6 +48,13 @@ def test_official_icon_installed() -> None:
     assert HELP_URL in metainfo
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     assert "user-install" in makefile
+    assert "msgfmt" in makefile
+    assert "locale/en/LC_MESSAGES" in makefile
+    potfiles = (ROOT / "po" / "POTFILES.in").read_text(encoding="utf-8")
+    assert "proton_drive_linux/app.py" in potfiles
+    en_po = (ROOT / "po" / "en.po").read_text(encoding="utf-8")
+    assert 'msgid "Settings"' in en_po
+    assert 'msgstr "Settings"' in en_po
     pkgbuild = (ROOT / "packaging" / "arch" / "PKGBUILD").read_text(encoding="utf-8")
     assert "proton-drive-linux" in pkgbuild
 

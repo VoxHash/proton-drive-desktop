@@ -38,6 +38,7 @@ Verify after install:
 python3 tests/test_cli.py
 python3 tests/test_packaging.py
 python3 tests/test_sync.py
+python3 tests/test_i18n.py
 ```
 
 This is not a Flatpak. Proton Pass on this machine is `flatpak install flathub me.proton.Pass`. Proton VPN is `pacman -S proton-vpn-gtk-app`. Drive has no official Linux GUI or Flathub id; bundling the CLI inside Flatpak needs a Flathub review and a Bun/SDK build that is not in this release.

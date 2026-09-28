@@ -29,6 +29,31 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.11.0" date="2026-09-28">
+      <description>
+        <p>GNU gettext for the GTK UI with Settings language (System default or English) and an English translation catalog. Changing language restarts the app.</p>
+      </description>
+    </release>
+    <release version="1.10.0" date="2026-09-28">
+      <description>
+        <p>Settings and About show live proton-drive version, including whether Proton reports a newer CLI, with official download and CLI Help links when an update exists.</p>
+      </description>
+    </release>
+    <release version="1.9.0" date="2026-09-28">
+      <description>
+        <p>Always-on folder activity in Settings: live worker running/stopped, last successful pass, files copied last pass, and last error from the niced CLI worker status file. Official proton-drive has no Activity log.</p>
+      </description>
+    </release>
+    <release version="1.8.0" date="2026-09-28">
+      <description>
+        <p>Permanent per-item delete in Trash using proton-drive filesystem delete. Empty trash remains the bulk action.</p>
+      </description>
+    </release>
+    <release version="1.7.0" date="2026-09-28">
+      <description>
+        <p>Photos album create, rename, delete, add photo, and remove photo using the official proton-drive album CLI.</p>
+      </description>
+    </release>
     <release version="1.6.0" date="2026-09-28">
       <description>
         <p>Always-on folder in Settings: enable starts the official CLI download/upload worker and session autostart. Proton Drive CLI 0.8.0 still cannot FUSE-mount Drive.</p>

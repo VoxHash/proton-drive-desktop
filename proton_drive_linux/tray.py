@@ -11,6 +11,8 @@ import gi
 gi.require_version("GdkPixbuf", "2.0")
 from gi.repository import GdkPixbuf, Gio, GLib
 
+from .i18n import _
+
 SNI_INTERFACE = "org.kde.StatusNotifierItem"
 SNI_PATH = "/StatusNotifierItem"
 DBUSMENU_INTERFACE = "com.canonical.dbusmenu"
@@ -234,14 +236,14 @@ class StatusNotifierTray:
         self._menu_revision = 1
         self._pixmaps = _png_to_sni_pixmap(Path(icon_png)) if icon_png else []
         self._menu_items = {
-            1: ("Show window", self._run_show),
-            2: ("Hide", self._run_hide),
-            4: ("Open My files", self._run_open_files),
-            5: ("Open always-on folder", self._run_open_sync),
-            6: ("Open in browser", self._run_open_browser),
-            8: ("Settings", self._run_settings),
-            9: ("Help", self._run_help),
-            11: ("Quit", self._run_quit),
+            1: (_("Show window"), self._run_show),
+            2: (_("Hide"), self._run_hide),
+            4: (_("Open My files"), self._run_open_files),
+            5: (_("Open always-on folder"), self._run_open_sync),
+            6: (_("Open in browser"), self._run_open_browser),
+            8: (_("Settings"), self._run_settings),
+            9: (_("Help"), self._run_help),
+            11: (_("Quit"), self._run_quit),
         }
         self._separators = {3, 7, 10}
 
@@ -356,7 +358,7 @@ class StatusNotifierTray:
             "AttentionIconName": _v_string(""),
             "AttentionIconPixmap": empty_pixmaps,
             "AttentionMovieName": _v_string(""),
-            "ToolTip": GLib.Variant("(sa(iiay)ss)", (self.icon_name, [], self.title, "Proton Drive")),
+            "ToolTip": GLib.Variant("(sa(iiay)ss)", (self.icon_name, [], self.title, _("Proton Drive"))),
             "ItemIsMenu": _v_bool(False),
             "Menu": GLib.Variant("o", DBUSMENU_PATH),
             "IconThemePath": _v_string(self.icon_theme_path),
