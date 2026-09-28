@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Proton Drive
+GenericName=Encrypted cloud storage
+Comment=Linux GUI for Proton's official Drive CLI
+Exec=proton-drive-linux
+Icon=folder-remote
+Terminal=false
+Categories=Network;FileTransfer;GTK;
+StartupNotify=true
+Keywords=proton;drive;cloud;files;

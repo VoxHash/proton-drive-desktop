@@ -1,0 +1,22 @@
+@define-color accent_bg_color #6d4aff;
+@define-color accent_color #8a6eff;
+@define-color accent_fg_color #ffffff;
+@define-color window_bg_color #16141c;
+@define-color window_fg_color #ffffff;
+@define-color view_bg_color #16141c;
+@define-color view_fg_color #ffffff;
+@define-color headerbar_bg_color #1c1b24;
+@define-color headerbar_fg_color #ffffff;
+@define-color sidebar_bg_color #1c1b24;
+@define-color sidebar_fg_color #ffffff;
+@define-color card_bg_color #1c1b24;
+@define-color destructive_bg_color #f5385b;
+
+.navigation-sidebar {
+  background: #1c1b24;
+}
+
+.dim-label {
+  color: #a7a4c5;
+  font-size: 12px;
+}
