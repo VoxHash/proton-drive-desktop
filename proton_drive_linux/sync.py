@@ -25,9 +25,11 @@ from .config import (
     gui_is_busy,
     load as load_config,
     load_sync_status,
+    parse_sync_status,
     save_sync_status,
     sync_lock_path,
 )
+from .i18n import _, ngettext
 from .paths import repo_root
 
 REMOTE_ROOT = "/my-files"
@@ -78,14 +80,19 @@ def run_once(*, force: bool = False) -> dict[str, Any]:
     cfg = load_config()
     enabled = bool(cfg.get("sync_enabled"))
     if not enabled and not force:
-        return _status(state="off", message="Always-on folder is disabled in Settings")
+        return _status(state="off", pid=0, message=_("Always-on folder is disabled in Settings"))
     if gui_is_busy() and not force:
-        return _status(state="idle", message="Waiting until the file list is idle")
+        return _status(state="idle", message=_("Waiting until the file list is idle"))
     folder = Path(str(cfg.get("sync_folder") or default_sync_folder())).expanduser()
     folder.mkdir(parents=True, exist_ok=True)
     lock = _acquire_lock()
     if lock is None:
-        return _status(state="running", message="Another sync pass is already running")
+        holder = lock_holder_pid()
+        return _status(
+            state="running",
+            pid=holder,
+            message=_("Another sync pass is already running"),
+        )
     errors: list[str] = []
     pulled = 0
     pushed = 0
@@ -93,8 +100,8 @@ def run_once(*, force: bool = False) -> dict[str, Any]:
         _status(
             state="running",
             last_started=utc_now(),
-            last_error="",
-            message=f"Syncing /my-files with {folder}",
+            pid=os.getpid(),
+            message=_("Syncing /my-files with {folder}").format(folder=folder),
         )
         cli = ProtonDriveCli()
         nodes = cli.list(REMOTE_ROOT)
@@ -112,22 +119,33 @@ def run_once(*, force: bool = False) -> dict[str, Any]:
                 pushed += 1
             except CliError as exc:
                 errors.append(f"upload {child.name}: {exc}")
-        message = f"Synced {pulled} remote and {pushed} local item(s) with {folder}"
+        message = ngettext(
+            "Synced {pulled} remote and {pushed} local item with {folder}",
+            "Synced {pulled} remote and {pushed} local items with {folder}",
+            pulled + pushed,
+        ).format(pulled=pulled, pushed=pushed, folder=folder)
         if errors:
-            message = f"{message}; {len(errors)} error(s)"
-        return _status(
-            state="error" if errors else "idle",
-            last_finished=utc_now(),
-            last_error="\n".join(errors)[:2000],
-            last_pull=pulled,
-            last_push=pushed,
-            message=message,
-        )
+            message = _("{message}; {count} error(s)").format(message=message, count=len(errors))
+        finished = utc_now()
+        updates: dict[str, Any] = {
+            "state": "error" if errors else "idle",
+            "last_finished": finished,
+            "last_error": "\n".join(errors)[:2000],
+            "last_pull": pulled,
+            "last_push": pushed,
+            "pid": 0,
+            "message": message,
+        }
+        if not errors:
+            updates["last_success"] = finished
+            updates["last_error"] = ""
+        return _status(**updates)
     except Exception as exc:  # noqa: BLE001 — persist the failure for Settings
         return _status(
             state="error",
             last_finished=utc_now(),
             last_error=str(exc)[:2000],
+            pid=0,
             message=str(exc)[:240],
         )
     finally:
@@ -162,7 +180,7 @@ def spawn_worker(*, force: bool = False) -> subprocess.Popen:
 
 
 def due_for_pass(status: dict[str, Any] | None = None) -> bool:
-    payload = status if status is not None else load_sync_status()
+    payload = parse_sync_status(status) if status is not None else load_sync_status()
     finished = str(payload.get("last_finished") or "").strip()
     if not finished:
         return True
@@ -170,29 +188,150 @@ def due_for_pass(status: dict[str, Any] | None = None) -> bool:
         when = datetime.fromisoformat(finished.replace("Z", "+00:00"))
     except ValueError:
         return True
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
     age = datetime.now(timezone.utc) - when.astimezone(timezone.utc)
     return age.total_seconds() >= INTERVAL_SECONDS
 
 
-def format_status_line(status: dict[str, Any] | None = None) -> str:
+def lock_holder_pid() -> int:
+    """PID of the process holding sync.lock, or 0 if no pass is running."""
+    path = sync_lock_path()
+    if not path.is_file():
+        return 0
+    try:
+        handle = path.open("r", encoding="utf-8")
+    except OSError:
+        return 0
+    try:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            try:
+                handle.seek(0)
+                pid = int(handle.read().strip() or "0")
+            except (OSError, ValueError):
+                return 1
+            return pid if pid > 0 else 1
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        return 0
+    finally:
+        handle.close()
+
+
+def _pid_is_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def format_when(iso: str) -> str:
+    text = str(iso or "").strip()
+    if not text:
+        return _("Never")
+    try:
+        when = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return text
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return when.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def format_files_last_pass(pull: int, push: int, *, had_pass: bool) -> str:
+    if not had_pass:
+        return _("No completed pass yet")
+    return _("{pull} remote, {push} local copied").format(pull=pull, push=push)
+
+
+def format_last_error(err: str) -> str:
+    text = str(err or "").strip()
+    if not text:
+        return _("None")
+    line = text.splitlines()[0].strip()
+    if len(line) > 160:
+        return f"{line[:157]}..."
+    return line
+
+
+def format_worker_line(*, enabled: bool, pid: int) -> str:
+    if not enabled:
+        return _("Off")
+    if pid > 0:
+        return _("Running (pid {pid})").format(pid=pid)
+    return _("Stopped")
+
+
+def activity_snapshot(status: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Live always-on folder activity from the worker lock + XDG status file."""
+    cfg = load_config()
+    enabled = bool(cfg.get("sync_enabled"))
+    payload = parse_sync_status(status) if status is not None else load_sync_status()
+    pid = lock_holder_pid()
+    if pid <= 0:
+        stored = int(payload.get("pid") or 0)
+        if _pid_is_alive(stored):
+            pid = stored
+    worker = format_worker_line(enabled=enabled, pid=pid)
+    last_success = str(payload.get("last_success") or "").strip()
+    last_finished = str(payload.get("last_finished") or "").strip()
+    last_error = str(payload.get("last_error") or "").strip()
+    pull = int(payload.get("last_pull") or 0)
+    push = int(payload.get("last_push") or 0)
+    had_pass = bool(last_finished)
+    return {
+        "enabled": enabled,
+        "running": bool(enabled and pid > 0),
+        "pid": pid if enabled else 0,
+        "worker": worker,
+        "state": str(payload.get("state") or ""),
+        "message": str(payload.get("message") or ""),
+        "last_success": format_when(last_success),
+        "last_success_raw": last_success,
+        "last_finished": format_when(last_finished),
+        "last_finished_raw": last_finished,
+        "last_error": format_last_error(last_error),
+        "last_error_raw": last_error,
+        "last_pull": pull,
+        "last_push": push,
+        "files": format_files_last_pass(pull, push, had_pass=had_pass),
+    }
+
+
+def mark_worker_stopped() -> dict[str, Any]:
+    return _status(state="off", pid=0, message=_("Always-on folder is disabled in Settings"))
+
+
+def mark_worker_idle() -> dict[str, Any]:
     cfg = load_config()
     if not cfg.get("sync_enabled"):
-        return "Always-on folder: off"
-    payload = status if status is not None else load_sync_status()
-    state = str(payload.get("state") or "idle")
-    message = str(payload.get("message") or "")
-    if state == "running":
-        return message or "Always-on folder: running"
-    if state == "error":
-        err = str(payload.get("last_error") or message or "error")
-        return f"Always-on folder: {err[:80]}"
-    finished = str(payload.get("last_finished") or "")
+        return mark_worker_stopped()
+    return _status(state="idle", pid=0, message=_("Always-on folder: waiting"))
+
+
+def format_status_line(status: dict[str, Any] | None = None) -> str:
+    snap = activity_snapshot(status)
+    if not snap["enabled"]:
+        return _("Always-on folder: off")
+    if snap["running"]:
+        return snap["message"] or _("Always-on folder: running (pid {pid})").format(pid=snap["pid"])
+    err = str(snap.get("last_error_raw") or "").strip()
+    if err:
+        return _("Always-on folder: {error}").format(error=err[:80])
+    finished = str(snap.get("last_success_raw") or snap.get("last_finished_raw") or "")
     if finished:
-        return f"Always-on folder: last {finished}"
-    return message or "Always-on folder: waiting"
+        return _("Always-on folder: last {when}").format(when=finished)
+    return snap["message"] or _("Always-on folder: waiting")
 
 
 def main(argv: list[str] | None = None) -> int:
+    from .i18n import install as install_i18n
+
+    install_i18n()
     parser = argparse.ArgumentParser(description="Official-CLI My files sync folder (not FUSE)")
     parser.add_argument("--once", action="store_true", help="Run one pull/push pass and exit")
     parser.add_argument("--force", action="store_true", help="Run even if the GUI is listing files")

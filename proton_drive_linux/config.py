@@ -1,4 +1,4 @@
-"""Local GUI settings (theme, download folder, CLI path, sync folder). Not a Proton API."""
+"""Local GUI settings (theme, language, download folder, CLI path, sync folder). Not a Proton API."""
 
 from __future__ import annotations
 
@@ -13,6 +13,18 @@ SYNC_STATUS_PATH = CONFIG_DIR / "sync-status.json"
 SYNC_LOCK_PATH = CONFIG_DIR / "sync.lock"
 GUI_BUSY_PATH = CONFIG_DIR / "gui-busy"
 
+_SYNC_STATUS_DEFAULTS: dict[str, Any] = {
+    "state": "idle",
+    "message": "",
+    "last_error": "",
+    "last_started": "",
+    "last_finished": "",
+    "last_success": "",
+    "last_pull": 0,
+    "last_push": 0,
+    "pid": 0,
+}
+
 
 def default_sync_folder() -> str:
     return str(Path.home() / "Proton Drive")
@@ -20,6 +32,7 @@ def default_sync_folder() -> str:
 
 _DEFAULTS: dict[str, Any] = {
     "theme": "dark",
+    "language": "system",
     "download_folder": str(Path.home() / "Downloads"),
     "cli_path": "",
     "autostart": False,
@@ -46,6 +59,11 @@ def load() -> dict[str, Any]:
     sync = str(data.get("sync_folder") or "").strip()
     data["sync_folder"] = sync or default_sync_folder()
     data["sync_enabled"] = bool(data.get("sync_enabled"))
+    language = str(data.get("language") or "system").strip().lower().replace("-", "_")
+    if language in {"en", "en_us", "en_gb", "english"}:
+        data["language"] = "en"
+    else:
+        data["language"] = "system"
     return data
 
 
@@ -73,19 +91,51 @@ def sync_lock_path() -> Path:
     return SYNC_LOCK_PATH
 
 
+def parse_sync_status(raw: Any) -> dict[str, Any]:
+    """Normalize worker status JSON (XDG sync-status.json) into known fields."""
+    data = dict(_SYNC_STATUS_DEFAULTS)
+    payload: dict[str, Any]
+    if isinstance(raw, str):
+        try:
+            loaded = json.loads(raw)
+        except json.JSONDecodeError:
+            return data
+        payload = loaded if isinstance(loaded, dict) else {}
+    elif isinstance(raw, dict):
+        payload = raw
+    else:
+        return data
+    int_keys = {"last_pull", "last_push", "pid"}
+    for key in _SYNC_STATUS_DEFAULTS:
+        if key not in payload or payload[key] is None:
+            continue
+        if key in int_keys:
+            try:
+                data[key] = int(payload[key])
+            except (TypeError, ValueError):
+                data[key] = 0
+        else:
+            data[key] = str(payload[key])
+    if not str(data.get("last_success") or "").strip():
+        if not str(data.get("last_error") or "").strip() and str(data.get("last_finished") or "").strip():
+            data["last_success"] = str(data["last_finished"])
+    return data
+
+
 def load_sync_status() -> dict[str, Any]:
     if not SYNC_STATUS_PATH.is_file():
-        return {"state": "idle", "message": "", "last_error": ""}
+        return parse_sync_status({})
     try:
-        raw = json.loads(SYNC_STATUS_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {"state": "idle", "message": "", "last_error": ""}
-    return raw if isinstance(raw, dict) else {"state": "idle", "message": "", "last_error": ""}
+        raw = SYNC_STATUS_PATH.read_text(encoding="utf-8")
+    except OSError:
+        return parse_sync_status({})
+    return parse_sync_status(raw)
 
 
 def save_sync_status(data: dict[str, Any]) -> None:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    SYNC_STATUS_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    payload = parse_sync_status(data)
+    SYNC_STATUS_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def set_gui_busy(busy: bool) -> None:
