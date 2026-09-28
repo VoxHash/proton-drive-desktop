@@ -1,0 +1,24 @@
+# Maintainer: VoxHash <15043788+VoxHash@users.noreply.github.com>
+pkgname=proton-drive-linux
+pkgver=1.5.0
+pkgrel=1
+pkgdesc='Unofficial GTK4 GUI for the official Proton Drive CLI'
+arch=(any)
+url='https://github.com/VoxHash/proton-drive-linux'
+license=('MIT' 'GPL-3.0-or-later')
+depends=(python python-gobject gtk4 libadwaita gdk-pixbuf2 hicolor-icon-theme)
+optdepends=(
+    'libsecret: store the official CLI session (GNOME Keyring / KWallet)'
+    'proton-drive-cli: official CLI built from ProtonDriveApps/sdk (AUR)'
+    'proton-drive-cli-bin: official prebuilt proton-drive binary (AUR)'
+)
+makedepends=(git)
+source=("git+$url.git#branch=main")
+sha256sums=('SKIP')
+
+package() {
+    cd "$srcdir/$pkgname"
+    make DESTDIR="$pkgdir" PREFIX=/usr install
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 data/icons/SOURCE "$pkgdir/usr/share/licenses/$pkgname/ICON-SOURCE"
+}

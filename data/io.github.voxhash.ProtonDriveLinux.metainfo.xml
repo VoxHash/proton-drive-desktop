@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.voxhash.ProtonDriveLinux</id>
+  <name>Proton Drive Linux</name>
+  <summary>Unofficial GTK4 GUI for Proton’s official Drive CLI</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT AND GPL-3.0-or-later</project_license>
+  <developer id="dev.voxhash">
+    <name>VoxHash Technologies</name>
+  </developer>
+  <launchable type="desktop-id">io.github.voxhash.ProtonDriveLinux.desktop</launchable>
+  <url type="homepage">https://github.com/VoxHash/proton-drive-linux</url>
+  <url type="bugtracker">https://github.com/VoxHash/proton-drive-linux/issues</url>
+  <url type="help">https://proton.me/support/drive</url>
+  <description>
+    <p>Proton has no official Linux Drive GUI. This unofficial GTK4 / libadwaita app wraps Proton’s official proton-drive CLI so you can browse My files, Photos, Shared with me, and Trash with the same keyring session as the CLI.</p>
+    <p>It is not affiliated with Proton AG. The Drive product icon is Proton AG artwork from the official Android app (GPL-3.0-or-later).</p>
+  </description>
+  <provides>
+    <binary>proton-drive-linux</binary>
+  </provides>
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+  <categories>
+    <category>Network</category>
+    <category>FileTransfer</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.5.0" date="2026-09-28">
+      <description>
+        <p>Local My files folder via official CLI download/upload. Proton Drive CLI 0.8.0 still cannot FUSE-mount Drive.</p>
+      </description>
+    </release>
+    <release version="1.4.0" date="2026-09-28">
+      <description>
+        <p>Rename, copy, move, and empty trash from the UI using the official proton-drive filesystem commands.</p>
+      </description>
+    </release>
+    <release version="1.3.0" date="2026-09-28">
+      <description>
+        <p>Share and invitations from the UI using the official proton-drive sharing and invitation commands.</p>
+      </description>
+    </release>
+    <release version="1.2.0" date="2026-09-28">
+      <description>
+        <p>Official Drive icon, Help and Settings, and Linux install metadata.</p>
+      </description>
+    </release>
+  </releases>
+</component>

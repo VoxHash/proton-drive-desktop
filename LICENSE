@@ -19,3 +19,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Proton Drive icon
+-----------------
+
+The Drive product mark under `data/icons/` is official Proton AG artwork from
+https://github.com/ProtonDriveApps/android-drive (GPL-3.0-or-later). See
+`data/icons/SOURCE`. Proton, Proton Drive, Proton Mail, Proton Pass, and
+Proton VPN are trademarks of Proton AG. This project is not affiliated with
+Proton AG.

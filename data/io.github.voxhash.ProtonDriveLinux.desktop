@@ -1,11 +1,17 @@
 [Desktop Entry]
 Type=Application
+Version=1.5
 Name=Proton Drive
 GenericName=Encrypted cloud storage
-Comment=Linux GUI for Proton's official Drive CLI
+Comment=Unofficial Linux GUI for Proton's official Drive CLI
 Exec=proton-drive-linux
-Icon=folder-remote
+TryExec=proton-drive-linux
+Icon=io.github.voxhash.ProtonDriveLinux
 Terminal=false
 Categories=Network;FileTransfer;GTK;
 StartupNotify=true
-Keywords=proton;drive;cloud;files;
+StartupWMClass=io.github.voxhash.ProtonDriveLinux
+SingleMainWindow=true
+Keywords=proton;drive;cloud;files;encrypted;
+DBusActivatable=false
+X-GNOME-UsesNotifications=false

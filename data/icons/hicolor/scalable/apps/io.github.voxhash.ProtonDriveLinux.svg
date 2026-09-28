@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Official Proton Drive product mark.
+
+  Converted from Proton AG Android launcher vectors (GPL-3.0-or-later):
+    ProtonDriveApps/android-drive
+      app/src/main/res/drawable-v24/ic_launcher_foreground.xml
+      app/src/main/res/values/ic_launcher_background.xml (#FFFFFF)
+    File added in commit f921cf8d858a36fbc8373a620c1df2e117d4d76a (tag-era 1.0.3)
+    Repository HEAD at fetch: d1c81cd2eab6c2d0715ad92c86428a4ef50b1825
+
+  Copyright (c) 2023 Proton AG.
+  Proton Drive, Proton, and the Drive mark are trademarks of Proton AG.
+  This project is not affiliated with Proton AG.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <rect x="2" y="2" width="104" height="104" rx="22" fill="#FFFFFF"/>
+  <defs>
+    <linearGradient id="pd1" x1="276.25" y1="-13.7704" x2="303.22" y2="365.775" gradientUnits="userSpaceOnUse">
+      <stop offset="0.988738" stop-color="#6D4AFF"/>
+      <stop offset="1" stop-color="#6D4AFF"/>
+    </linearGradient>
+    <radialGradient id="pd2" cx="387.589" cy="5.75312" r="501.829" gradientUnits="userSpaceOnUse">
+      <stop offset="0.556057" stop-color="#FF62C0" stop-opacity="0"/>
+      <stop offset="0.994421" stop-color="#FF62C0"/>
+    </radialGradient>
+    <linearGradient id="pd3" x1="-15" y1="84" x2="420" y2="562" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6D4AFF"/>
+      <stop offset="0.35934" stop-color="#AE8CFF"/>
+      <stop offset="1" stop-color="#F8CCFF"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(17.311764 17.311764) scale(0.13292839)">
+    <path d="M102,384V168C102,148.118 118.118,132 138,132H205.514C212.327,132 218.961,134.174 224.452,138.205L247.048,154.795C252.539,158.826 259.173,161 265.986,161H414C433.882,161 450,177.118 450,197V384C450,403.882 433.882,420 414,420H138C118.118,420 102,403.882 102,384Z" fill="url(#pd1)"/>
+    <path d="M102,384V168C102,148.118 118.118,132 138,132H205.514C212.327,132 218.961,134.174 224.452,138.205L247.048,154.795C252.539,158.826 259.173,161 265.986,161H414C433.882,161 450,177.118 450,197V384C450,403.882 433.882,420 414,420H138C118.118,420 102,403.882 102,384Z" fill="url(#pd2)"/>
+    <path fill-rule="evenodd" d="M265.986,161H289H378H414C433.882,161 450,177.117 450,197V384C450,403.883 433.882,420 414,420H376V232.162C376,216.635 363.365,204.073 347.839,204.162L211.529,204.947C205.659,204.982 199.926,203.17 195.141,199.768L164.786,178.182C160.047,174.811 154.375,173 148.559,173H102V168C102,148.117 118.118,132 138,132H205.514C212.327,132 218.961,134.174 224.452,138.205L247.048,154.795C252.539,158.826 259.173,161 265.986,161Z" fill="url(#pd3)"/>
+  </g>
+</svg>

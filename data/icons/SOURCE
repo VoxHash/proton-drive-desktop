@@ -1,0 +1,20 @@
+Official Proton Drive icon
+==========================
+
+Artwork: Proton Drive Android launcher (product mark, not Mail/Pass/VPN).
+Upstream: https://github.com/ProtonDriveApps/android-drive
+License: GNU GPL-3.0-or-later (Proton AG), same as the Android app.
+Trademark: Proton Drive and the Drive mark are trademarks of Proton AG.
+This GUI is not affiliated with or endorsed by Proton AG.
+
+Files used (main branch at fetch):
+  app/src/main/res/drawable-v24/ic_launcher_foreground.xml
+    blob sha cd9b01ee5d3d2db1a11568c19f86e2915ca8d02c
+    introduced in commit f921cf8d858a36fbc8373a620c1df2e117d4d76a (1.0.3)
+  app/src/main/res/values/ic_launcher_background.xml  (#FFFFFF)
+  app/src/main/res/mipmap-{mdpi,xhdpi,xxxhdpi}/ic_launcher.png
+  Repository HEAD at fetch: d1c81cd2eab6c2d0715ad92c86428a4ef50b1825
+
+Installed as: io.github.voxhash.ProtonDriveLinux
+  data/icons/hicolor/scalable/apps/io.github.voxhash.ProtonDriveLinux.svg
+  data/icons/hicolor/<size>/apps/io.github.voxhash.ProtonDriveLinux.png
