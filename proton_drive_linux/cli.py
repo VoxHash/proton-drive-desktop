@@ -22,6 +22,14 @@ def find_binary() -> str:
     env = os.environ.get("PROTON_DRIVE_BIN")
     if env and Path(env).is_file():
         return env
+    try:
+        from .config import load
+
+        configured = str(load().get("cli_path") or "").strip()
+        if configured and Path(configured).expanduser().is_file():
+            return str(Path(configured).expanduser())
+    except Exception:
+        pass
     found = shutil.which("proton-drive")
     if found:
         return found
@@ -31,15 +39,55 @@ def find_binary() -> str:
     raise CliError("Official proton-drive CLI not found on PATH or ~/.local/bin")
 
 
+def result_value(value: Any) -> str:
+    if isinstance(value, dict):
+        if value.get("ok") and value.get("value"):
+            return str(value["value"])
+        err = value.get("error")
+        if isinstance(err, dict):
+            return str(err.get("name") or err.get("error") or "")
+        if err:
+            return str(err)
+        nested = value.get("value")
+        if isinstance(nested, str):
+            return nested
+        return ""
+    if isinstance(value, str):
+        return value
+    return ""
+
+
 def node_name(node: dict[str, Any]) -> str:
-    name = node.get("name")
-    if isinstance(name, dict):
-        if name.get("ok") and name.get("value"):
-            return str(name["value"])
-        return str(name.get("error") or "Unknown")
-    if isinstance(name, str) and name:
+    name = result_value(node.get("name"))
+    return name or "Unknown"
+
+
+def invitation_uid(item: dict[str, Any]) -> str:
+    return str(item.get("uid") or item.get("invitationUid") or "")
+
+
+def invitation_name(item: dict[str, Any]) -> str:
+    node = item.get("node")
+    if isinstance(node, dict):
+        name = node_name(node)
+        if name != "Unknown":
+            return name
+    name = result_value(item.get("name"))
+    if name:
         return name
-    return "Unknown"
+    return str(item.get("inviteeEmail") or "Invitation")
+
+
+def added_by_email(item: dict[str, Any]) -> str:
+    return result_value(item.get("addedByEmail") or item.get("sharedBy") or "")
+
+
+def member_email(item: dict[str, Any]) -> str:
+    return str(item.get("inviteeEmail") or item.get("email") or added_by_email(item))
+
+
+def member_role(item: dict[str, Any]) -> str:
+    return str(item.get("role") or "viewer")
 
 
 def node_size(node: dict[str, Any]) -> int | None:
@@ -111,7 +159,7 @@ class ProtonDriveCli:
             raise CliError(combined or f"proton-drive exited {proc.returncode}")
         if not json_out:
             return stdout
-        if not stdout:
+        if not stdout or stdout in ("undefined", "null"):
             return None
         try:
             return json.loads(stdout)
@@ -162,6 +210,19 @@ class ProtonDriveCli:
 
     def rename(self, path: str, new_name: str) -> None:
         self.run(["filesystem", "rename", path, new_name], json_out=False)
+
+    def copy(self, source_path: str, target_parent: str, *, name: str | None = None) -> None:
+        args = ["filesystem", "copy"]
+        if name:
+            args.extend(["-n", name])
+        args.extend([source_path, target_parent])
+        self.run(args, json_out=False)
+
+    def move(self, source_path: str, target_parent: str) -> None:
+        self.run(["filesystem", "move", source_path, target_parent], json_out=False)
+
+    def empty_trash(self) -> None:
+        self.run(["filesystem", "empty-trash"], json_out=False)
 
     def upload(self, local_paths: list[str], parent: str) -> None:
         self.run(
@@ -227,6 +288,90 @@ class ProtonDriveCli:
             json_out=False,
             timeout=3600,
         )
+
+    def sharing_status(self, path: str) -> dict[str, Any] | None:
+        data = self.run(["sharing", "status", path])
+        if data is None:
+            return None
+        if isinstance(data, dict):
+            return data
+        raise CliError(f"Unexpected sharing status payload for {path}")
+
+    def sharing_invite(
+        self,
+        path: str,
+        users: list[str],
+        *,
+        role: str = "viewer",
+        message: str | None = None,
+        include_node_name: bool = False,
+    ) -> dict[str, Any] | None:
+        args = ["sharing", "invite"]
+        for user in users:
+            args.extend(["-u", user])
+        if role:
+            args.extend(["-r", role])
+        if message:
+            args.extend(["-m", message])
+        if include_node_name:
+            args.append("-n")
+        args.append(path)
+        data = self.run(args)
+        if data is None:
+            return None
+        if isinstance(data, dict):
+            return data
+        raise CliError(f"Unexpected sharing invite payload for {path}")
+
+    def sharing_leave(self, path: str) -> None:
+        self.run(["sharing", "leave", path], json_out=False)
+
+    def sharing_remove(self, path: str, *, emails: list[str] | None = None, everyone: bool = False) -> None:
+        args = ["sharing", "remove"]
+        if everyone:
+            args.append("-a")
+        for email in emails or []:
+            args.extend(["-e", email])
+        args.append(path)
+        self.run(args, json_out=False)
+
+    def sharing_set_url(
+        self,
+        path: str,
+        *,
+        role: str = "viewer",
+        password: str | None = None,
+        expiration: str | None = None,
+    ) -> dict[str, Any] | None:
+        args = ["sharing", "set-url", "--role", role]
+        if password:
+            args.extend(["--password", password])
+        if expiration:
+            args.extend(["--expiration", expiration])
+        args.append(path)
+        data = self.run(args)
+        if data is None:
+            return None
+        if isinstance(data, dict):
+            return data
+        raise CliError(f"Unexpected sharing set-url payload for {path}")
+
+    def sharing_remove_url(self, path: str) -> None:
+        self.run(["sharing", "remove-url", path], json_out=False)
+
+    def invitation_list(self) -> list[dict[str, Any]]:
+        data = self.run(["invitation", "list"])
+        if data is None:
+            return []
+        if isinstance(data, list):
+            return [item if isinstance(item, dict) else {"uid": str(item)} for item in data]
+        raise CliError("Unexpected invitation list payload")
+
+    def invitation_accept(self, uid: str) -> None:
+        self.run(["invitation", "accept", uid], json_out=False)
+
+    def invitation_reject(self, uid: str) -> None:
+        self.run(["invitation", "reject", uid], json_out=False)
 
 
 def _self_check() -> None:
