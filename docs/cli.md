@@ -52,4 +52,4 @@ python3 -m proton_drive_linux.sync --status
 
 `--status` prints `~/.config/proton-drive-linux/sync-status.json` (worker state, last success, last error, files copied). Settings reads the same file plus `sync.lock`. Official CLI 0.8.0 has no `mount` / FUSE command and no Activity log. `filesystem delete` permanently removes one already-trashed item; `filesystem empty-trash` still clears all of `/trash`.
 
-Extract GTK UI strings with `make pot` / `make update-po`. `make user-install` runs `msgfmt` and installs `en/LC_MESSAGES/proton-drive-linux.mo`.
+Extract GTK UI strings with `make pot` / `make update-po`. `make user-install` runs `msgfmt` and installs `en`, `ru`, `zh_CN`, `ar`, `it`, `pt`, `es`, `ko`, and `ja` under `LC_MESSAGES/proton-drive-linux.mo`. Portuguese is `pt` so `LANGUAGE=pt_BR` still loads it.

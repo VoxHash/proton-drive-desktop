@@ -9,4 +9,4 @@ make user-install
 proton-drive-linux
 ```
 
-Help in the app opens https://proton.me/support/drive. Settings reads the live CLI session (account email, CLI path, version vs Proton newer check) and can keep an always-on folder without FUSE. That Settings group shows live worker activity from this app's niced sync process. If Proton reports a newer CLI, Settings and About link to https://proton.me/download/drive/cli and https://proton.me/support/drive-cli. Settings → Language is System default or English; changing it restarts the app so GNU gettext reloads.
+Help in the app opens https://proton.me/support/drive. Settings reads the live CLI session (account email, CLI path, version vs Proton newer check) and can keep an always-on folder without FUSE. That Settings group shows live worker activity from this app's niced sync process. If Proton reports a newer CLI, Settings and About link to https://proton.me/download/drive/cli and https://proton.me/support/drive-cli. Settings → Language is System default, English, or ru / zh_CN / ar / it / pt / es / ko / ja (native names; Arabic RTL); changing it restarts the app so GNU gettext reloads.

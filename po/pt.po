@@ -1,439 +1,453 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR VoxHash Technologies
+# Portuguese translations for proton-drive-linux package.
+# Copyright (C) 2026 VoxHash Technologies
 # This file is distributed under the same license as the proton-drive-linux package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# VoxHash Technologies <contact@voxhash.dev>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: proton-drive-linux\n"
 "Report-Msgid-Bugs-To: contact@voxhash.dev\n"
-"POT-Creation-Date: 2026-09-28 06:28-0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"POT-Creation-Date: 2026-09-28 06:23-0400\n"
+"PO-Revision-Date: 2026-09-28 06:28-04:00\n"
+"Last-Translator: VoxHash Technologies <contact@voxhash.dev>\n"
+"Language-Team: Portuguese\n"
+"Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: proton_drive_linux/app.py:79 proton_drive_linux/app.py:147
 #: proton_drive_linux/app.py:223 proton_drive_linux/app.py:1101
 msgid "My files"
-msgstr ""
+msgstr "Meus arquivos"
 
 #: proton_drive_linux/app.py:80
 msgid "Photos"
-msgstr ""
+msgstr "Fotos"
 
 #: proton_drive_linux/app.py:81 proton_drive_linux/app.py:1101
 msgid "Shared with me"
-msgstr ""
+msgstr "Compartilhados comigo"
 
 #: proton_drive_linux/app.py:82
 msgid "Trash"
-msgstr ""
+msgstr "Lixeira"
 
 #: proton_drive_linux/app.py:87
 #, python-brace-format
 msgid "{count} item"
 msgid_plural "{count} items"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "{count} elemento"
+msgstr[1] "{count} elementos"
 
 #: proton_drive_linux/app.py:142 proton_drive_linux/app.py:163
 #: proton_drive_linux/app.py:167 proton_drive_linux/app.py:1639
 #: proton_drive_linux/tray.py:361
 msgid "Proton Drive"
-msgstr ""
+msgstr "Proton Drive"
 
 #: proton_drive_linux/app.py:167
 msgid "Linux · official CLI"
-msgstr ""
+msgstr "Linux · CLI oficial"
 
 #: proton_drive_linux/app.py:186
 msgid "Checking session…"
-msgstr ""
+msgstr "Verificando sessão…"
 
 #: proton_drive_linux/app.py:219
 msgid "Files"
-msgstr ""
+msgstr "Arquivos"
 
 #: proton_drive_linux/app.py:226 proton_drive_linux/app.py:1094
 msgid "Back"
-msgstr ""
+msgstr "Voltar"
 
 #: proton_drive_linux/app.py:230
 msgid "Menu"
-msgstr ""
+msgstr "Menu de opções"
 
 #: proton_drive_linux/app.py:242 proton_drive_linux/app.py:456
 #: proton_drive_linux/app.py:732
 msgid "New folder"
-msgstr ""
+msgstr "Nova pasta"
 
 #: proton_drive_linux/app.py:243
 msgid "Upload"
-msgstr ""
+msgstr "Enviar"
 
 #: proton_drive_linux/app.py:244 proton_drive_linux/app.py:1852
 msgid "Download"
-msgstr ""
+msgstr "Baixar"
 
 #: proton_drive_linux/app.py:245
 msgid "Share or invitations"
-msgstr ""
+msgstr "Compartilhar ou convites"
 
 #: proton_drive_linux/app.py:246 proton_drive_linux/app.py:676
 #: proton_drive_linux/app.py:684 proton_drive_linux/app.py:873
 #: proton_drive_linux/app.py:882 proton_drive_linux/app.py:888
 msgid "Rename"
-msgstr ""
+msgstr "Renomear"
 
 #: proton_drive_linux/app.py:247 proton_drive_linux/app.py:458
 #: proton_drive_linux/app.py:684 proton_drive_linux/app.py:1085
 msgid "Copy"
-msgstr ""
+msgstr "Copiar"
 
 #: proton_drive_linux/app.py:248 proton_drive_linux/app.py:684
 #: proton_drive_linux/app.py:1085
 msgid "Move"
-msgstr ""
+msgstr "Mover"
 
 #: proton_drive_linux/app.py:249 proton_drive_linux/app.py:682
 #: proton_drive_linux/app.py:1925
 msgid "Open"
-msgstr ""
+msgstr "Abrir"
 
 #: proton_drive_linux/app.py:250 proton_drive_linux/app.py:465
 msgid "Move to trash"
-msgstr ""
+msgstr "Mover para a lixeira"
 
 #: proton_drive_linux/app.py:251 proton_drive_linux/app.py:671
 #: proton_drive_linux/app.py:1013
 msgid "Delete permanently"
-msgstr ""
+msgstr "Excluir permanentemente"
 
 #: proton_drive_linux/app.py:252 proton_drive_linux/app.py:672
 #: proton_drive_linux/app.py:1041
 msgid "Empty trash"
-msgstr ""
+msgstr "Esvaziar lixeira"
 
 #: proton_drive_linux/app.py:253
 msgid "Refresh"
-msgstr ""
+msgstr "Atualizar"
 
 #: proton_drive_linux/app.py:265
 msgid "Sign in"
-msgstr ""
+msgstr "Entrar"
 
 #: proton_drive_linux/app.py:278
 msgid "Loading Proton Drive…"
-msgstr ""
+msgstr "Carregando Proton Drive…"
 
 #: proton_drive_linux/app.py:283 proton_drive_linux/app.py:580
 #: proton_drive_linux/app.py:625 proton_drive_linux/app.py:630
 msgid "This folder is empty"
-msgstr ""
+msgstr "Esta pasta está vazia"
 
 #: proton_drive_linux/app.py:284 proton_drive_linux/app.py:581
 #: proton_drive_linux/app.py:626 proton_drive_linux/app.py:631
 msgid ""
 "Upload files with the official Proton Drive CLI session on this machine."
 msgstr ""
+"Envie arquivos com a sessão da CLI oficial do Proton Drive neste computador."
 
 #: proton_drive_linux/app.py:288
 msgid "Could not load Drive"
-msgstr ""
+msgstr "Não foi possível carregar o Drive"
 
 #: proton_drive_linux/app.py:289
 msgid "Sign in with Proton"
-msgstr ""
+msgstr "Entrar com o Proton"
 
 #: proton_drive_linux/app.py:304 proton_drive_linux/app.py:724
 #: proton_drive_linux/app.py:733
 msgid "Name"
-msgstr ""
+msgstr "Nome"
 
 #: proton_drive_linux/app.py:305
 msgid "Modified"
-msgstr ""
+msgstr "Modificado"
 
 #: proton_drive_linux/app.py:306
 msgid "Size"
-msgstr ""
+msgstr "Tamanho"
 
 #: proton_drive_linux/app.py:362 proton_drive_linux/app.py:1921
 msgid "Folder"
-msgstr ""
+msgstr "Pasta"
 
 #: proton_drive_linux/app.py:370 proton_drive_linux/app.py:514
 #: proton_drive_linux/app.py:1238
 msgid "Album"
-msgstr ""
+msgstr "Álbum"
 
 #: proton_drive_linux/app.py:381
 msgid "Working…"
-msgstr ""
+msgstr "Trabalhando…"
 
 #: proton_drive_linux/app.py:396
 msgid "Sign in required"
-msgstr ""
+msgstr "É necessário entrar"
 
 #: proton_drive_linux/app.py:397
 msgid ""
 "Use the same Proton browser login as the official CLI. Session is stored in "
 "the system keyring."
 msgstr ""
+"Use o mesmo login Proton no navegador da CLI oficial. A sessão fica no "
+"chaveiro do sistema."
 
 #: proton_drive_linux/app.py:400 proton_drive_linux/app.py:1994
 #: proton_drive_linux/app.py:2005 proton_drive_linux/app.py:2159
 #: proton_drive_linux/app.py:2160
 msgid "Not signed in"
-msgstr ""
+msgstr "Não conectado"
 
 #: proton_drive_linux/app.py:402
 msgid "Proton Drive CLI error"
-msgstr ""
+msgstr "Erro da CLI do Proton Drive"
 
 #: proton_drive_linux/app.py:445
 #, python-brace-format
 msgid "Reading {path}"
-msgstr ""
+msgstr "Lendo {path}"
 
 #: proton_drive_linux/app.py:456 proton_drive_linux/app.py:723
 msgid "New album"
-msgstr ""
+msgstr "Novo álbum"
 
 #: proton_drive_linux/app.py:458 proton_drive_linux/app.py:678
 #: proton_drive_linux/app.py:680 proton_drive_linux/app.py:1207
 #: proton_drive_linux/app.py:1213
 msgid "Add to album"
-msgstr ""
+msgstr "Adicionar ao álbum"
 
 #: proton_drive_linux/app.py:461 proton_drive_linux/app.py:670
 msgid "Restore"
-msgstr ""
+msgstr "Restaurar"
 
 #: proton_drive_linux/app.py:463
 msgid "Delete album or remove from album"
-msgstr ""
+msgstr "Excluir álbum ou remover do álbum"
 
 #: proton_drive_linux/app.py:547
 msgid "Photo"
-msgstr ""
+msgstr "Foto"
 
 #: proton_drive_linux/app.py:572 proton_drive_linux/app.py:604
 msgid "Signed in"
-msgstr ""
+msgstr "Conectado"
 
 #: proton_drive_linux/app.py:575
 msgid "No photos"
-msgstr ""
+msgstr "Nenhuma foto"
 
 #: proton_drive_linux/app.py:576
 msgid ""
 "Create an album from the toolbar, or photos appear from the official CLI "
 "timeline for this Proton account."
 msgstr ""
+"Crie um álbum na barra de ferramentas, ou as fotos aparecem na linha do "
+"tempo da CLI oficial desta conta Proton."
 
 #: proton_drive_linux/app.py:583
 #, python-brace-format
 msgid "{count} photo"
 msgid_plural "{count} photos"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "{count} foto"
+msgstr[1] "{count} fotos"
 
 #: proton_drive_linux/app.py:584 proton_drive_linux/app.py:636
 #, python-brace-format
 msgid "{count} · {extra}"
-msgstr ""
+msgstr "{count} · {extra}"
 
 #: proton_drive_linux/app.py:619
 msgid "Nothing shared with you"
-msgstr ""
+msgstr "Nada compartilhado com você"
 
 #: proton_drive_linux/app.py:620
 msgid ""
 "Pending invitations from proton-drive invitation list appear here. Share "
 "your own files from My files."
 msgstr ""
+"Convites pendentes de proton-drive invitation list aparecem aqui. "
+"Compartilhe seus arquivos em Meus arquivos."
 
 #: proton_drive_linux/app.py:622
 msgid "Trash is empty"
-msgstr ""
+msgstr "A lixeira está vazia"
 
 #: proton_drive_linux/app.py:623
 msgid ""
 "Trashed files appear here. Delete permanently removes one selected item. "
 "Empty trash permanently deletes everything in /trash."
 msgstr ""
+"Arquivos da lixeira aparecem aqui. Excluir permanentemente remove um item "
+"selecionado. Esvaziar lixeira apaga para sempre tudo em /trash."
 
 #: proton_drive_linux/app.py:635
 #, python-brace-format
 msgid " · {count} invitation(s)"
-msgstr ""
+msgstr " · {count} convite(s)"
 
 #: proton_drive_linux/app.py:662 proton_drive_linux/app.py:818
 msgid "Select an item first"
-msgstr ""
+msgstr "Selecione um item primeiro"
 
 #: proton_drive_linux/app.py:676 proton_drive_linux/app.py:958
 msgid "Delete album"
-msgstr ""
+msgstr "Excluir álbum"
 
 #: proton_drive_linux/app.py:678
 msgid "Remove from album"
-msgstr ""
+msgstr "Remover do álbum"
 
 #: proton_drive_linux/app.py:718
 msgid "Complete Proton sign-in in the browser, then this window will refresh."
-msgstr ""
+msgstr "Conclua o login Proton no navegador; esta janela será atualizada."
 
 #: proton_drive_linux/app.py:723
 msgid "Album name. Uses proton-drive album create."
-msgstr ""
+msgstr "Nome do álbum. Usa proton-drive album create."
 
 #: proton_drive_linux/app.py:726 proton_drive_linux/app.py:735
 #: proton_drive_linux/app.py:872 proton_drive_linux/app.py:887
 #: proton_drive_linux/app.py:957 proton_drive_linux/app.py:1012
 #: proton_drive_linux/app.py:1040 proton_drive_linux/app.py:1283
 msgid "Cancel"
-msgstr ""
+msgstr "Cancelar"
 
 #: proton_drive_linux/app.py:727 proton_drive_linux/app.py:736
 msgid "Create"
-msgstr ""
+msgstr "Criar"
 
 #: proton_drive_linux/app.py:732
 msgid "Folder name"
-msgstr ""
+msgstr "Nome da pasta"
 
 #: proton_drive_linux/app.py:755 proton_drive_linux/app.py:899
 #: proton_drive_linux/app.py:911
 msgid "Enter a name"
-msgstr ""
+msgstr "Digite um nome"
 
 #: proton_drive_linux/app.py:757
 #, python-brace-format
 msgid "Created album {name}"
-msgstr ""
+msgstr "Álbum {name} criado"
 
 #: proton_drive_linux/app.py:760
 msgid "Upload to Proton Drive"
-msgstr ""
+msgstr "Enviar para o Proton Drive"
 
 #: proton_drive_linux/app.py:778
 #, python-brace-format
 msgid "Uploading {count} item"
 msgid_plural "Uploading {count} items"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Enviando {count} elemento"
+msgstr[1] "Enviando {count} elementos"
 
 #: proton_drive_linux/app.py:780 proton_drive_linux/app.py:782
 msgid "Upload finished"
-msgstr ""
+msgstr "Envio concluído"
 
 #: proton_drive_linux/app.py:787 proton_drive_linux/app.py:844
 #: proton_drive_linux/app.py:847 proton_drive_linux/app.py:853
 msgid "Select a file or folder first"
-msgstr ""
+msgstr "Selecione um arquivo ou pasta primeiro"
 
 #: proton_drive_linux/app.py:793
 msgid "Open a day or album, then select a photo"
-msgstr ""
+msgstr "Abra um dia ou álbum e selecione uma foto"
 
 #: proton_drive_linux/app.py:799
 #, python-brace-format
 msgid "Downloading {name}"
-msgstr ""
+msgstr "Baixando {name}"
 
 #: proton_drive_linux/app.py:809
 #, python-brace-format
 msgid "Saved to {folder}"
-msgstr ""
+msgstr "Salvo em {folder}"
 
 #: proton_drive_linux/app.py:824
 msgid "Restored"
-msgstr ""
+msgstr "Restaurado"
 
 #: proton_drive_linux/app.py:833
 msgid ""
 "Photos stay in the timeline. Delete an album, or open an album to remove a "
 "photo from it."
 msgstr ""
+"As fotos permanecem na linha do tempo. Exclua um álbum ou abra um álbum para "
+"remover uma foto."
 
 #: proton_drive_linux/app.py:835
 msgid "Moved to trash"
-msgstr ""
+msgstr "Movido para a lixeira"
 
 #: proton_drive_linux/app.py:850
 msgid "Restore the item from Trash first"
-msgstr ""
+msgstr "Restaure o item da lixeira primeiro"
 
 #: proton_drive_linux/app.py:867
 msgid "Rename album"
-msgstr ""
+msgstr "Renomear álbum"
 
 #: proton_drive_linux/app.py:870 proton_drive_linux/app.py:885
 msgid "New name"
-msgstr ""
+msgstr "Novo nome"
 
 #: proton_drive_linux/app.py:904 proton_drive_linux/app.py:922
 #, python-brace-format
 msgid "Renamed to {name}"
-msgstr ""
+msgstr "Renomeado para {name}"
 
 #: proton_drive_linux/app.py:930
 msgid "Select a photo to add to an album"
-msgstr ""
+msgstr "Selecione uma foto para adicionar a um álbum"
 
 #: proton_drive_linux/app.py:938
 msgid "Open an album, then select a photo to remove"
-msgstr ""
+msgstr "Abra um álbum e selecione uma foto para remover"
 
 #: proton_drive_linux/app.py:943
 msgid "Removed from album"
-msgstr ""
+msgstr "Removido do álbum"
 
 #: proton_drive_linux/app.py:950
 msgid "Select an album first"
-msgstr ""
+msgstr "Selecione um álbum primeiro"
 
 #: proton_drive_linux/app.py:954
 msgid "Delete album?"
-msgstr ""
+msgstr "Excluir álbum?"
 
 #: proton_drive_linux/app.py:955
 #, python-brace-format
 msgid ""
 "Deletes “{name}”. Photos stay in your Photos timeline. This cannot be undone."
 msgstr ""
+"Exclui “{name}”. As fotos permanecem na linha do tempo de Fotos. Isto não "
+"pode ser desfeito."
 
 #: proton_drive_linux/app.py:970
 msgid "Album deleted"
-msgstr ""
+msgstr "Álbum excluído"
 
 #: proton_drive_linux/app.py:989
 msgid "Move is for files in My files. Add a photo to an album instead."
 msgstr ""
+"Mover é para arquivos em Meus arquivos. Em vez disso, adicione a foto a um "
+"álbum."
 
 #: proton_drive_linux/app.py:998
 msgid "Open Trash to delete an item permanently"
-msgstr ""
+msgstr "Abra a lixeira para excluir um item permanentemente"
 
 #: proton_drive_linux/app.py:1002
 msgid "Select an item in Trash first"
-msgstr ""
+msgstr "Selecione um item na lixeira primeiro"
 
 #: proton_drive_linux/app.py:1005
 msgid "Select a file or folder in Trash"
-msgstr ""
+msgstr "Selecione um arquivo ou pasta na lixeira"
 
 #: proton_drive_linux/app.py:1009
 msgid "Delete permanently?"
-msgstr ""
+msgstr "Excluir permanentemente?"
 
 #: proton_drive_linux/app.py:1010
 #, python-brace-format
@@ -441,126 +455,133 @@ msgid ""
 "Permanently deletes “{name}” from Trash. Other items stay in Trash. This "
 "cannot be undone."
 msgstr ""
+"Exclui “{name}” da lixeira permanentemente. Os outros itens permanecem na "
+"lixeira. Isto não pode ser desfeito."
 
 #: proton_drive_linux/app.py:1024
 #, python-brace-format
 msgid "Deleting {name}"
-msgstr ""
+msgstr "Excluindo {name}"
 
 #: proton_drive_linux/app.py:1027
 #, python-brace-format
 msgid "Permanently deleted {name}"
-msgstr ""
+msgstr "Excluído permanentemente: {name}"
 
 #: proton_drive_linux/app.py:1033
 msgid "Open Trash to empty it"
-msgstr ""
+msgstr "Abra a lixeira para esvaziá-la"
 
 #: proton_drive_linux/app.py:1037
 msgid "Empty trash?"
-msgstr ""
+msgstr "Esvaziar lixeira?"
 
 #: proton_drive_linux/app.py:1038
 msgid ""
 "Permanently deletes every item in Trash. Photos trash is not affected. This "
 "cannot be undone."
 msgstr ""
+"Exclui permanentemente todos os itens da lixeira. A lixeira de Fotos não é "
+"afetada. Isto não pode ser desfeito."
 
 #: proton_drive_linux/app.py:1050
 msgid "Emptying trash"
-msgstr ""
+msgstr "Esvaziando a lixeira"
 
 #: proton_drive_linux/app.py:1051
 msgid "Trash emptied"
-msgstr ""
+msgstr "Lixeira esvaziada"
 
 #: proton_drive_linux/app.py:1061
 msgid "Select a shared item, or open Shared with me to see pending invitations"
 msgstr ""
+"Selecione um item compartilhado ou abra Compartilhados comigo para ver "
+"convites pendentes"
 
 #: proton_drive_linux/app.py:1063
 msgid "Select a file or folder to share"
-msgstr ""
+msgstr "Selecione um arquivo ou pasta para compartilhar"
 
 #: proton_drive_linux/app.py:1067
 msgid "Open a day or album, then share a photo"
-msgstr ""
+msgstr "Abra um dia ou álbum e compartilhe uma foto"
 
 #: proton_drive_linux/app.py:1070
 msgid "Select a file or folder inside My files to share"
-msgstr ""
+msgstr "Selecione um arquivo ou pasta em Meus arquivos para compartilhar"
 
 #: proton_drive_linux/app.py:1086
 #, python-brace-format
 msgid "{verb} {name}"
-msgstr ""
+msgstr "{verb} {name}"
 
 #: proton_drive_linux/app.py:1100
 #, python-brace-format
 msgid "{verb} \"{name}\" into a folder. Click a folder to open it."
-msgstr ""
+msgstr "{verb} “{name}” para uma pasta. Clique em uma pasta para abri-la."
 
 #: proton_drive_linux/app.py:1107
 msgid "Name of the copy"
-msgstr ""
+msgstr "Nome da cópia"
 
 #: proton_drive_linux/app.py:1116
 msgid "No folders here. Use the button to copy into this location."
-msgstr ""
+msgstr "Não há pastas aqui. Use o botão para copiar para este local."
 
 #: proton_drive_linux/app.py:1116
 msgid "No folders here. Use the button to move into this location."
-msgstr ""
+msgstr "Não há pastas aqui. Use o botão para mover para este local."
 
 #: proton_drive_linux/app.py:1119
 #, python-brace-format
 msgid "{verb} here"
-msgstr ""
+msgstr "{verb} aqui"
 
 #: proton_drive_linux/app.py:1175
 msgid "Choose a different folder"
-msgstr ""
+msgstr "Escolha outra pasta"
 
 #: proton_drive_linux/app.py:1193
 msgid "Copied"
-msgstr ""
+msgstr "Copiado"
 
 #: proton_drive_linux/app.py:1193
 msgid "Moved"
-msgstr ""
+msgstr "Movido"
 
 #: proton_drive_linux/app.py:1194
 #, python-brace-format
 msgid "{verb} to {dest}"
-msgstr ""
+msgstr "{verb} para {dest}"
 
 #: proton_drive_linux/app.py:1197
 #, python-brace-format
 msgid "Copying {name}"
-msgstr ""
+msgstr "Copiando {name}"
 
 #: proton_drive_linux/app.py:1197
 #, python-brace-format
 msgid "Moving {name}"
-msgstr ""
+msgstr "Movendo {name}"
 
 #: proton_drive_linux/app.py:1217
 msgid ""
 "Choose an album. Uses proton-drive album add-photo with the live photo UID."
 msgstr ""
+"Escolha um álbum. Usa proton-drive album add-photo com o UID da foto atual."
 
 #: proton_drive_linux/app.py:1223
 msgid "No albums yet. Create one from Photos with New album."
-msgstr ""
+msgstr "Ainda não há álbuns. Crie um em Fotos com Novo álbum."
 
 #: proton_drive_linux/app.py:1265
 #, python-brace-format
 msgid "Added to {album}"
-msgstr ""
+msgstr "Adicionado a {album}"
 
 #: proton_drive_linux/app.py:1274
 msgid "Someone"
-msgstr ""
+msgstr "Alguém"
 
 #: proton_drive_linux/app.py:1279
 #, python-brace-format
@@ -568,126 +589,128 @@ msgid ""
 "{inviter} invited you as {role}. Accept or reject uses the official CLI "
 "invitation UID."
 msgstr ""
+"{inviter} convidou você como {role}. Aceitar ou recusar usa o UID do convite "
+"da CLI oficial."
 
 #: proton_drive_linux/app.py:1284
 msgid "Reject"
-msgstr ""
+msgstr "Recusar"
 
 #: proton_drive_linux/app.py:1285
 msgid "Accept"
-msgstr ""
+msgstr "Aceitar"
 
 #: proton_drive_linux/app.py:1293
 msgid "Invitation has no UID from proton-drive invitation list"
-msgstr ""
+msgstr "O convite não tem UID de proton-drive invitation list"
 
 #: proton_drive_linux/app.py:1306
 msgid "Invitation accepted"
-msgstr ""
+msgstr "Convite aceito"
 
 #: proton_drive_linux/app.py:1306
 msgid "Invitation rejected"
-msgstr ""
+msgstr "Convite recusado"
 
 #: proton_drive_linux/app.py:1318
 #, python-brace-format
 msgid "Share {name}"
-msgstr ""
+msgstr "Compartilhar {name}"
 
 #: proton_drive_linux/app.py:1324
 msgid "Share"
-msgstr ""
+msgstr "Compartilhar"
 
 #: proton_drive_linux/app.py:1334
 msgid "Invite people"
-msgstr ""
+msgstr "Convidar pessoas"
 
 #: proton_drive_linux/app.py:1335
 msgid "Email address"
-msgstr ""
+msgstr "Endereço de e-mail"
 
 #: proton_drive_linux/app.py:1341
 msgid "Optional message in the invitation email"
-msgstr ""
+msgstr "Mensagem opcional no e-mail de convite"
 
 #: proton_drive_linux/app.py:1343
 msgid "Include the file name in the email (clear text)"
-msgstr ""
+msgstr "Incluir o nome do arquivo no e-mail (texto simples)"
 
 #: proton_drive_linux/app.py:1345
 msgid "Send invitation"
-msgstr ""
+msgstr "Enviar convite"
 
 #: proton_drive_linux/app.py:1351
 msgid "People with access"
-msgstr ""
+msgstr "Pessoas com acesso"
 
 #: proton_drive_linux/app.py:1354
 msgid "Not shared yet"
-msgstr ""
+msgstr "Ainda não compartilhado"
 
 #: proton_drive_linux/app.py:1359
 msgid "Public link"
-msgstr ""
+msgstr "Link público"
 
 #: proton_drive_linux/app.py:1360 proton_drive_linux/app.py:1446
 #: proton_drive_linux/app.py:1517
 msgid "No public link"
-msgstr ""
+msgstr "Nenhum link público"
 
 #: proton_drive_linux/app.py:1365
 msgid "Optional link password"
-msgstr ""
+msgstr "Senha opcional do link"
 
 #: proton_drive_linux/app.py:1367
 msgid "Optional expiration (YYYY-MM-DD)"
-msgstr ""
+msgstr "Expiração opcional (AAAA-MM-DD)"
 
 #: proton_drive_linux/app.py:1370
 msgid "Create or update link"
-msgstr ""
+msgstr "Criar ou atualizar link"
 
 #: proton_drive_linux/app.py:1372
 msgid "Copy link"
-msgstr ""
+msgstr "Copiar link"
 
 #: proton_drive_linux/app.py:1374
 msgid "Remove link"
-msgstr ""
+msgstr "Remover link"
 
 #: proton_drive_linux/app.py:1384
 msgid "Leave share"
-msgstr ""
+msgstr "Sair do compartilhamento"
 
 #: proton_drive_linux/app.py:1388
 msgid "Stop sharing"
-msgstr ""
+msgstr "Parar de compartilhar"
 
 #: proton_drive_linux/app.py:1404
 msgid "Pending invitation"
-msgstr ""
+msgstr "Convite pendente"
 
 #: proton_drive_linux/app.py:1408
 #, python-brace-format
 msgid "External · {state}"
-msgstr ""
+msgstr "Externo · {state}"
 
 #: proton_drive_linux/app.py:1411
 msgid "Member"
-msgstr ""
+msgstr "Membro"
 
 #: proton_drive_linux/app.py:1427
 #, python-brace-format
 msgid "{email} · {role} · {kind}"
-msgstr ""
+msgstr "{email} · {role} · {kind}"
 
 #: proton_drive_linux/app.py:1427 proton_drive_linux/app.py:1977
 msgid "Unknown"
-msgstr ""
+msgstr "Desconhecido"
 
 #: proton_drive_linux/app.py:1430
 msgid "Remove"
-msgstr ""
+msgstr "Remover"
 
 #: proton_drive_linux/app.py:1442
 #, python-brace-format
@@ -695,94 +718,98 @@ msgid ""
 "{url}\n"
 "Role: {role}"
 msgstr ""
+"{url}\n"
+"Função: {role}"
 
 #: proton_drive_linux/app.py:1465
 msgid "Enter an email to invite"
-msgstr ""
+msgstr "Digite um e-mail para convidar"
 
 #: proton_drive_linux/app.py:1468
 msgid "Enter a valid email address"
-msgstr ""
+msgstr "Digite um endereço de e-mail válido"
 
 #: proton_drive_linux/app.py:1480
 msgid "Invitation sent"
-msgstr ""
+msgstr "Convite enviado"
 
 #: proton_drive_linux/app.py:1493
 #, python-brace-format
 msgid "Removed {email}"
-msgstr ""
+msgstr "Removido {email}"
 
 #: proton_drive_linux/app.py:1508
 msgid "Public link updated"
-msgstr ""
+msgstr "Link público atualizado"
 
 #: proton_drive_linux/app.py:1523
 msgid "Link copied"
-msgstr ""
+msgstr "Link copiado"
 
 #: proton_drive_linux/app.py:1533
 msgid "Public link removed"
-msgstr ""
+msgstr "Link público removido"
 
 #: proton_drive_linux/app.py:1546
 msgid "Left share"
-msgstr ""
+msgstr "Saiu do compartilhamento"
 
 #: proton_drive_linux/app.py:1564
 msgid "Stopped sharing"
-msgstr ""
+msgstr "Compartilhamento encerrado"
 
 #: proton_drive_linux/app.py:1586 proton_drive_linux/app.py:1829
 #: proton_drive_linux/tray.py:244
 msgid "Settings"
-msgstr ""
+msgstr "Configurações"
 
 #: proton_drive_linux/app.py:1587
 msgid "Open Drive in browser"
-msgstr ""
+msgstr "Abrir o Drive no navegador"
 
 #: proton_drive_linux/app.py:1588 proton_drive_linux/tray.py:242
 msgid "Open always-on folder"
-msgstr ""
+msgstr "Abrir pasta sempre ativa"
 
 #: proton_drive_linux/app.py:1591 proton_drive_linux/app.py:1761
 msgid "Proton Drive Help"
-msgstr ""
+msgstr "Ajuda do Proton Drive"
 
 #: proton_drive_linux/app.py:1592 proton_drive_linux/app.py:1776
 msgid "Drive CLI Help"
-msgstr ""
+msgstr "Ajuda da CLI do Drive"
 
 #: proton_drive_linux/app.py:1593
 msgid "Open CLI logs"
-msgstr ""
+msgstr "Abrir registros da CLI"
 
 #: proton_drive_linux/app.py:1596
 msgid "About Proton Drive Linux"
-msgstr ""
+msgstr "Sobre o Proton Drive Linux"
 
 #: proton_drive_linux/app.py:1599 proton_drive_linux/tray.py:246
 msgid "Quit"
-msgstr ""
+msgstr "Sair"
 
 #: proton_drive_linux/app.py:1755
 msgid ""
 "Unofficial GTK4 GUI for Proton’s official Drive CLI. Not affiliated with "
 "Proton AG."
 msgstr ""
+"Interface GTK4 não oficial para a CLI oficial do Proton Drive. Não afiliada "
+"à Proton AG."
 
 #: proton_drive_linux/app.py:1758
 msgid "GUI © 2026 VoxHash Technologies. Proton Drive mark © Proton AG."
-msgstr ""
+msgstr "Interface © 2026 VoxHash Technologies. Marca Proton Drive © Proton AG."
 
 #: proton_drive_linux/app.py:1762
 msgid "Terms of Service"
-msgstr ""
+msgstr "Termos de serviço"
 
 #: proton_drive_linux/app.py:1763
 msgid "Privacy Policy"
-msgstr ""
+msgstr "Política de privacidade"
 
 #: proton_drive_linux/app.py:1769
 #, python-brace-format
@@ -790,66 +817,68 @@ msgid ""
 "Unofficial GTK4 GUI for Proton’s official Drive CLI. Not affiliated with "
 "Proton AG. Official CLI {version}: {status}"
 msgstr ""
+"Interface GTK4 não oficial para a CLI oficial do Proton Drive. Não afiliada "
+"à Proton AG. CLI oficial {version}: {status}"
 
 #: proton_drive_linux/app.py:1775
 msgid "Download Proton Drive CLI"
-msgstr ""
+msgstr "Baixar a CLI do Proton Drive"
 
 #: proton_drive_linux/app.py:1834
 msgid "Account"
-msgstr ""
+msgstr "Conta"
 
 #: proton_drive_linux/app.py:1835
 msgid "Application"
-msgstr ""
+msgstr "Aplicativo"
 
 #: proton_drive_linux/app.py:1840
 msgid "Proton account"
-msgstr ""
+msgstr "Conta Proton"
 
 #: proton_drive_linux/app.py:1841
 msgid "Taken from the official CLI session in the system keyring."
-msgstr ""
+msgstr "Obtido da sessão da CLI oficial no chaveiro do sistema."
 
 #: proton_drive_linux/app.py:1843
 msgid "Signed in as"
-msgstr ""
+msgstr "Conectado como"
 
 #: proton_drive_linux/app.py:1843
 msgid "Reading live session…"
-msgstr ""
+msgstr "Lendo sessão ativa…"
 
 #: proton_drive_linux/app.py:1844
 msgid "Proton Account"
-msgstr ""
+msgstr "Conta Proton"
 
 #: proton_drive_linux/app.py:1848
 msgid "CLI version"
-msgstr ""
+msgstr "Versão da CLI"
 
 #: proton_drive_linux/app.py:1848
 msgid "Reading proton-drive version…"
-msgstr ""
+msgstr "Lendo a versão do proton-drive…"
 
 #: proton_drive_linux/app.py:1850
 msgid "CLI updates"
-msgstr ""
+msgstr "Atualizações da CLI"
 
 #: proton_drive_linux/app.py:1850
 msgid "Checking proton-drive version…"
-msgstr ""
+msgstr "Verificando a versão do proton-drive…"
 
 #: proton_drive_linux/app.py:1854
 msgid "CLI Help"
-msgstr ""
+msgstr "Ajuda da CLI"
 
 #: proton_drive_linux/app.py:1861
 msgid "Sign out"
-msgstr ""
+msgstr "Sair da conta"
 
 #: proton_drive_linux/app.py:1868
 msgid "Official CLI"
-msgstr ""
+msgstr "CLI oficial"
 
 #: proton_drive_linux/app.py:1869
 msgid ""
@@ -857,39 +886,42 @@ msgid ""
 "machine. proton-drive version reports the installed CLI and whether Proton "
 "has a newer one. This app does not download Proton binaries."
 msgstr ""
+"Esta interface só executa o binário proton-drive já instalado neste "
+"computador. proton-drive version informa a CLI instalada e se a Proton tem "
+"uma mais nova. Este aplicativo não baixa binários da Proton."
 
 #: proton_drive_linux/app.py:1871
 msgid "CLI path"
-msgstr ""
+msgstr "Caminho da CLI"
 
 #: proton_drive_linux/app.py:1872 proton_drive_linux/app.py:1904
 #: proton_drive_linux/app.py:1922
 msgid "Choose"
-msgstr ""
+msgstr "Escolher"
 
 #: proton_drive_linux/app.py:1878
 msgid "Appearance"
-msgstr ""
+msgstr "Aparência"
 
 #: proton_drive_linux/app.py:1879
 msgid "Dark"
-msgstr ""
+msgstr "Escuro"
 
 #: proton_drive_linux/app.py:1879
 msgid "Light"
-msgstr ""
+msgstr "Claro"
 
 #: proton_drive_linux/app.py:1879
 msgid "System"
-msgstr ""
+msgstr "Sistema"
 
 #: proton_drive_linux/app.py:1880
 msgid "Theme"
-msgstr ""
+msgstr "Tema"
 
 #: proton_drive_linux/app.py:1888
 msgid "Language"
-msgstr ""
+msgstr "Idioma"
 
 #: proton_drive_linux/app.py:1889
 msgid ""
@@ -898,22 +930,28 @@ msgid ""
 "Korean, and Japanese load this app’s catalogs. Changing language restarts "
 "the app. Arabic uses a right-to-left layout."
 msgstr ""
+"Como no Proton Drive no Windows: o padrão do sistema segue o idioma do "
+"sistema operacional. Inglês, russo, chinês simplificado, árabe, italiano, "
+"português, espanhol, coreano e japonês carregam os catálogos deste "
+"aplicativo. Trocar o idioma reinicia o aplicativo. O árabe usa layout da "
+"direita para a esquerda."
 
 #: proton_drive_linux/app.py:1900
 msgid "Downloads"
-msgstr ""
+msgstr "Transferências"
 
 #: proton_drive_linux/app.py:1901
 msgid "One-off downloads from the toolbar. This is not the always-on folder."
 msgstr ""
+"Downloads avulsos da barra de ferramentas. Isto não é a pasta sempre ativa."
 
 #: proton_drive_linux/app.py:1903 proton_drive_linux/app.py:2038
 msgid "Download folder"
-msgstr ""
+msgstr "Pasta de downloads"
 
 #: proton_drive_linux/app.py:1911 proton_drive_linux/app.py:2053
 msgid "Always-on folder"
-msgstr ""
+msgstr "Pasta sempre ativa"
 
 #: proton_drive_linux/app.py:1912
 msgid ""
@@ -924,159 +962,170 @@ msgid ""
 "replaced. Worker, last pass, and errors below come from this app's worker "
 "lock and ~/.config/proton-drive-linux/sync-status.json."
 msgstr ""
+"A CLI oficial 0.8.0 não consegue montar o Drive via FUSE e não tem registro "
+"de Atividade. Ativar mantém um diretório local real em sincronização skip/"
+"merge com /my-files por um processo niced de download/envio, inicia esse "
+"processo agora e liga o início automático da sessão para continuar após o "
+"login. Arquivos existentes nunca são substituídos. Processo, última passagem "
+"e erros abaixo vêm do bloqueio do processo deste aplicativo e de ~/.config/"
+"proton-drive-linux/sync-status.json."
 
 #: proton_drive_linux/app.py:1915
 msgid "Enable always-on folder"
-msgstr ""
+msgstr "Ativar pasta sempre ativa"
 
 #: proton_drive_linux/app.py:1916
 msgid "Starts the CLI worker now and with this session. Not a kernel mount."
 msgstr ""
+"Inicia o processo da CLI agora e com esta sessão. Não é uma montagem do "
+"kernel."
 
 #: proton_drive_linux/app.py:1929
 msgid "Worker"
-msgstr ""
+msgstr "Processo"
 
 #: proton_drive_linux/app.py:1929 proton_drive_linux/sync.py:266
 msgid "Stopped"
-msgstr ""
+msgstr "Parado"
 
 #: proton_drive_linux/app.py:1930
 msgid "Sync now"
-msgstr ""
+msgstr "Sincronizar agora"
 
 #: proton_drive_linux/app.py:1934
 msgid "Last successful pass"
-msgstr ""
+msgstr "Última passagem bem-sucedida"
 
 #: proton_drive_linux/app.py:1934 proton_drive_linux/sync.py:235
 msgid "Never"
-msgstr ""
+msgstr "Nunca"
 
 #: proton_drive_linux/app.py:1936
 msgid "Files last pass"
-msgstr ""
+msgstr "Arquivos da última passagem"
 
 #: proton_drive_linux/app.py:1936 proton_drive_linux/sync.py:247
 msgid "No completed pass yet"
-msgstr ""
+msgstr "Nenhuma passagem concluída ainda"
 
 #: proton_drive_linux/app.py:1938
 msgid "Last error"
-msgstr ""
+msgstr "Último erro"
 
 #: proton_drive_linux/app.py:1938 proton_drive_linux/sync.py:254
 msgid "None"
-msgstr ""
+msgstr "Nenhum"
 
 #: proton_drive_linux/app.py:1947
 msgid "Startup"
-msgstr ""
+msgstr "Inicialização"
 
 #: proton_drive_linux/app.py:1948
 msgid ""
 "XDG autostart for this GUI. Enabling the always-on folder turns this on so "
 "the worker comes back after login."
 msgstr ""
+"Inicialização automática XDG desta interface. Ativar a pasta sempre ativa "
+"liga isto para o processo voltar após o login."
 
 #: proton_drive_linux/app.py:1950
 msgid "Start with this session"
-msgstr ""
+msgstr "Iniciar com esta sessão"
 
 #: proton_drive_linux/app.py:2109 proton_drive_linux/sync.py:265
 #, python-brace-format
 msgid "Running (pid {pid})"
-msgstr ""
+msgstr "Em execução (pid {pid})"
 
 #: proton_drive_linux/app.py:2134
 msgid "Official proton-drive binary"
-msgstr ""
+msgstr "Binário oficial proton-drive"
 
 #: proton_drive_linux/i18n.py:142
 msgid "System default"
-msgstr ""
+msgstr "Padrão do sistema"
 
 #: proton_drive_linux/i18n.py:143
 msgid "English"
-msgstr ""
+msgstr "Inglês"
 
 #: proton_drive_linux/sync.py:83 proton_drive_linux/sync.py:306
 msgid "Always-on folder is disabled in Settings"
-msgstr ""
+msgstr "A pasta sempre ativa está desativada em Configurações"
 
 #: proton_drive_linux/sync.py:85
 msgid "Waiting until the file list is idle"
-msgstr ""
+msgstr "Aguardando a lista de arquivos ficar ociosa"
 
 #: proton_drive_linux/sync.py:94
 msgid "Another sync pass is already running"
-msgstr ""
+msgstr "Outra passagem de sincronização já está em andamento"
 
 #: proton_drive_linux/sync.py:104
 #, python-brace-format
 msgid "Syncing /my-files with {folder}"
-msgstr ""
+msgstr "Sincronizando /my-files com {folder}"
 
 #: proton_drive_linux/sync.py:123
 #, python-brace-format
 msgid "Synced {pulled} remote and {pushed} local item with {folder}"
 msgid_plural "Synced {pulled} remote and {pushed} local items with {folder}"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Sincronizado {pulled} item remoto e {pushed} local com {folder}"
+msgstr[1] "Sincronizados {pulled} itens remotos e {pushed} locais com {folder}"
 
 #: proton_drive_linux/sync.py:128
 #, python-brace-format
 msgid "{message}; {count} error(s)"
-msgstr ""
+msgstr "{message}; {count} erro(s)"
 
 #: proton_drive_linux/sync.py:248
 #, python-brace-format
 msgid "{pull} remote, {push} local copied"
-msgstr ""
+msgstr "{pull} remotos, {push} locais copiados"
 
 #: proton_drive_linux/sync.py:263
 msgid "Off"
-msgstr ""
+msgstr "Desligado"
 
 #: proton_drive_linux/sync.py:313 proton_drive_linux/sync.py:328
 msgid "Always-on folder: waiting"
-msgstr ""
+msgstr "Pasta sempre ativa: aguardando"
 
 #: proton_drive_linux/sync.py:319
 msgid "Always-on folder: off"
-msgstr ""
+msgstr "Pasta sempre ativa: desligada"
 
 #: proton_drive_linux/sync.py:321
 #, python-brace-format
 msgid "Always-on folder: running (pid {pid})"
-msgstr ""
+msgstr "Pasta sempre ativa: em execução (pid {pid})"
 
 #: proton_drive_linux/sync.py:324
 #, python-brace-format
 msgid "Always-on folder: {error}"
-msgstr ""
+msgstr "Pasta sempre ativa: {error}"
 
 #: proton_drive_linux/sync.py:327
 #, python-brace-format
 msgid "Always-on folder: last {when}"
-msgstr ""
+msgstr "Pasta sempre ativa: último {when}"
 
 #: proton_drive_linux/tray.py:239
 msgid "Show window"
-msgstr ""
+msgstr "Mostrar janela"
 
 #: proton_drive_linux/tray.py:240
 msgid "Hide"
-msgstr ""
+msgstr "Ocultar"
 
 #: proton_drive_linux/tray.py:241
 msgid "Open My files"
-msgstr ""
+msgstr "Abrir Meus arquivos"
 
 #: proton_drive_linux/tray.py:243
 msgid "Open in browser"
-msgstr ""
+msgstr "Abrir no navegador"
 
 #: proton_drive_linux/tray.py:245
 msgid "Help"
-msgstr ""
+msgstr "Ajuda"

@@ -14,7 +14,7 @@ Settings can enable an **always-on folder** (default `~/Proton Drive`). That is 
 
 The primary menu (hamburger) matches official Drive’s Help / Settings / About / account actions:
 
-- **Settings** — live account email, CLI version vs Proton newer check and path, theme, language (System default or English; restarts the app), download folder, always-on folder (enable, path, worker activity), autostart, sign out (`proton-drive auth logout`)
+- **Settings** — live account email, CLI version vs Proton newer check and path, theme, language (System default, English, ru, zh_CN, ar, it, pt, es, ko, ja; restarts the app; Arabic RTL), download folder, always-on folder (enable, path, worker activity), autostart, sign out (`proton-drive auth logout`)
 - **Proton Drive Help** — https://proton.me/support/drive
 - **Drive CLI Help** — https://proton.me/support/drive-cli
 - **Open Drive in browser** — https://drive.proton.me

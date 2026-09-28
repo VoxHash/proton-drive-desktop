@@ -4,7 +4,7 @@
 | --- | --- |
 | `PROTON_DRIVE_BIN` | Official CLI path (overrides Settings) |
 | Settings → Theme | Dark, Light, or System (`Adw.StyleManager`) |
-| Settings → Language | System default (follow OS locale) or English; changing language restarts the Gio app |
+| Settings → Language | System default, English, Русский, 简体中文, العربية, Italiano, Português, Español, 한국어, 日本語; changing language restarts the Gio app. Portuguese is gettext `pt`. Arabic is RTL |
 | Settings → Download folder | Local folder for toolbar CLI downloads |
 | Settings → Always-on folder | User-chosen local copy of `/my-files` (skip/merge download + upload) |
 | Settings → Enable always-on folder | Starts the niced CLI worker now and turns on session autostart |

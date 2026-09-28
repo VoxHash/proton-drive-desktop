@@ -15,7 +15,8 @@
 - [x] Permanent per-item delete in the UI (`proton-drive filesystem delete`; Empty trash already covers bulk)
 - [x] Always-on folder activity in Settings (worker status, last pass, errors — CLI has no Windows-style Activity log)
 - [x] Surface official CLI update check (`proton-drive version` already reports latest vs newer)
-- [x] English gettext / i18n for this GTK UI (Proton Windows/macOS language settings; this app is English-only)
+- [x] English gettext / i18n for this GTK UI (Proton Windows/macOS language settings)
+- [x] ru, zh_CN, ar, it, pt, es, ko, and ja catalogs (native names in Settings; Arabic RTL)
 - [ ] Publish the existing Arch PKGBUILD to the AUR (do not bundle Proton’s prebuilt CLI)
 - [ ] Flathub listing (CLI must stay an extra runtime the user installs; do not redistribute proton.me binaries)
 - [ ] Adopt official CLI `mount` / Proton Sync if they ship it

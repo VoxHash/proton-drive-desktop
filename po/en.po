@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: proton-drive-linux\n"
 "Report-Msgid-Bugs-To: contact@voxhash.dev\n"
-"POT-Creation-Date: 2026-09-28 06:11-0400\n"
+"POT-Creation-Date: 2026-09-28 06:23-0400\n"
 "PO-Revision-Date: 2026-09-28 06:03-0400\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -76,7 +76,7 @@ msgstr "New folder"
 msgid "Upload"
 msgstr "Upload"
 
-#: proton_drive_linux/app.py:244 proton_drive_linux/app.py:1851
+#: proton_drive_linux/app.py:244 proton_drive_linux/app.py:1852
 msgid "Download"
 msgstr "Download"
 
@@ -101,7 +101,7 @@ msgid "Move"
 msgstr "Move"
 
 #: proton_drive_linux/app.py:249 proton_drive_linux/app.py:682
-#: proton_drive_linux/app.py:1924
+#: proton_drive_linux/app.py:1925
 msgid "Open"
 msgstr "Open"
 
@@ -164,7 +164,7 @@ msgstr "Modified"
 msgid "Size"
 msgstr "Size"
 
-#: proton_drive_linux/app.py:362 proton_drive_linux/app.py:1920
+#: proton_drive_linux/app.py:362 proton_drive_linux/app.py:1921
 msgid "Folder"
 msgstr "Folder"
 
@@ -189,9 +189,9 @@ msgstr ""
 "Use the same Proton browser login as the official CLI. Session is stored in "
 "the system keyring."
 
-#: proton_drive_linux/app.py:400 proton_drive_linux/app.py:1993
-#: proton_drive_linux/app.py:2004 proton_drive_linux/app.py:2158
-#: proton_drive_linux/app.py:2159
+#: proton_drive_linux/app.py:400 proton_drive_linux/app.py:1994
+#: proton_drive_linux/app.py:2005 proton_drive_linux/app.py:2159
+#: proton_drive_linux/app.py:2160
 msgid "Not signed in"
 msgstr "Not signed in"
 
@@ -700,7 +700,7 @@ msgstr "Member"
 msgid "{email} · {role} · {kind}"
 msgstr "{email} · {role} · {kind}"
 
-#: proton_drive_linux/app.py:1427 proton_drive_linux/app.py:1976
+#: proton_drive_linux/app.py:1427 proton_drive_linux/app.py:1977
 msgid "Unknown"
 msgstr "Unknown"
 
@@ -754,7 +754,7 @@ msgstr "Left share"
 msgid "Stopped sharing"
 msgstr "Stopped sharing"
 
-#: proton_drive_linux/app.py:1586 proton_drive_linux/app.py:1828
+#: proton_drive_linux/app.py:1586 proton_drive_linux/app.py:1829
 #: proton_drive_linux/tray.py:244
 msgid "Settings"
 msgstr "Settings"
@@ -767,11 +767,11 @@ msgstr "Open Drive in browser"
 msgid "Open always-on folder"
 msgstr "Open always-on folder"
 
-#: proton_drive_linux/app.py:1591 proton_drive_linux/app.py:1760
+#: proton_drive_linux/app.py:1591 proton_drive_linux/app.py:1761
 msgid "Proton Drive Help"
 msgstr "Proton Drive Help"
 
-#: proton_drive_linux/app.py:1592 proton_drive_linux/app.py:1775
+#: proton_drive_linux/app.py:1592 proton_drive_linux/app.py:1776
 msgid "Drive CLI Help"
 msgstr "Drive CLI Help"
 
@@ -787,7 +787,7 @@ msgstr "About Proton Drive Linux"
 msgid "Quit"
 msgstr "Quit"
 
-#: proton_drive_linux/app.py:1754
+#: proton_drive_linux/app.py:1755
 msgid ""
 "Unofficial GTK4 GUI for Proton’s official Drive CLI. Not affiliated with "
 "Proton AG."
@@ -795,19 +795,19 @@ msgstr ""
 "Unofficial GTK4 GUI for Proton’s official Drive CLI. Not affiliated with "
 "Proton AG."
 
-#: proton_drive_linux/app.py:1757
+#: proton_drive_linux/app.py:1758
 msgid "GUI © 2026 VoxHash Technologies. Proton Drive mark © Proton AG."
 msgstr "GUI © 2026 VoxHash Technologies. Proton Drive mark © Proton AG."
 
-#: proton_drive_linux/app.py:1761
+#: proton_drive_linux/app.py:1762
 msgid "Terms of Service"
 msgstr "Terms of Service"
 
-#: proton_drive_linux/app.py:1762
+#: proton_drive_linux/app.py:1763
 msgid "Privacy Policy"
 msgstr "Privacy Policy"
 
-#: proton_drive_linux/app.py:1768
+#: proton_drive_linux/app.py:1769
 #, python-brace-format
 msgid ""
 "Unofficial GTK4 GUI for Proton’s official Drive CLI. Not affiliated with "
@@ -816,67 +816,67 @@ msgstr ""
 "Unofficial GTK4 GUI for Proton’s official Drive CLI. Not affiliated with "
 "Proton AG. Official CLI {version}: {status}"
 
-#: proton_drive_linux/app.py:1774
+#: proton_drive_linux/app.py:1775
 msgid "Download Proton Drive CLI"
 msgstr "Download Proton Drive CLI"
 
-#: proton_drive_linux/app.py:1833
+#: proton_drive_linux/app.py:1834
 msgid "Account"
 msgstr "Account"
 
-#: proton_drive_linux/app.py:1834
+#: proton_drive_linux/app.py:1835
 msgid "Application"
 msgstr "Application"
 
-#: proton_drive_linux/app.py:1839
+#: proton_drive_linux/app.py:1840
 msgid "Proton account"
 msgstr "Proton account"
 
-#: proton_drive_linux/app.py:1840
+#: proton_drive_linux/app.py:1841
 msgid "Taken from the official CLI session in the system keyring."
 msgstr "Taken from the official CLI session in the system keyring."
 
-#: proton_drive_linux/app.py:1842
+#: proton_drive_linux/app.py:1843
 msgid "Signed in as"
 msgstr "Signed in as"
 
-#: proton_drive_linux/app.py:1842
+#: proton_drive_linux/app.py:1843
 msgid "Reading live session…"
 msgstr "Reading live session…"
 
-#: proton_drive_linux/app.py:1843
+#: proton_drive_linux/app.py:1844
 msgid "Proton Account"
 msgstr "Proton Account"
 
-#: proton_drive_linux/app.py:1847
+#: proton_drive_linux/app.py:1848
 msgid "CLI version"
 msgstr "CLI version"
 
-#: proton_drive_linux/app.py:1847
+#: proton_drive_linux/app.py:1848
 msgid "Reading proton-drive version…"
 msgstr "Reading proton-drive version…"
 
-#: proton_drive_linux/app.py:1849
+#: proton_drive_linux/app.py:1850
 msgid "CLI updates"
 msgstr "CLI updates"
 
-#: proton_drive_linux/app.py:1849
+#: proton_drive_linux/app.py:1850
 msgid "Checking proton-drive version…"
 msgstr "Checking proton-drive version…"
 
-#: proton_drive_linux/app.py:1853
+#: proton_drive_linux/app.py:1854
 msgid "CLI Help"
 msgstr "CLI Help"
 
-#: proton_drive_linux/app.py:1860
+#: proton_drive_linux/app.py:1861
 msgid "Sign out"
 msgstr "Sign out"
 
-#: proton_drive_linux/app.py:1867
+#: proton_drive_linux/app.py:1868
 msgid "Official CLI"
 msgstr "Official CLI"
 
-#: proton_drive_linux/app.py:1868
+#: proton_drive_linux/app.py:1869
 msgid ""
 "This GUI only runs the proton-drive binary already installed on this "
 "machine. proton-drive version reports the installed CLI and whether Proton "
@@ -886,66 +886,68 @@ msgstr ""
 "machine. proton-drive version reports the installed CLI and whether Proton "
 "has a newer one. This app does not download Proton binaries."
 
-#: proton_drive_linux/app.py:1870
+#: proton_drive_linux/app.py:1871
 msgid "CLI path"
 msgstr "CLI path"
 
-#: proton_drive_linux/app.py:1871 proton_drive_linux/app.py:1903
-#: proton_drive_linux/app.py:1921
+#: proton_drive_linux/app.py:1872 proton_drive_linux/app.py:1904
+#: proton_drive_linux/app.py:1922
 msgid "Choose"
 msgstr "Choose"
 
-#: proton_drive_linux/app.py:1877
+#: proton_drive_linux/app.py:1878
 msgid "Appearance"
 msgstr "Appearance"
 
-#: proton_drive_linux/app.py:1878
+#: proton_drive_linux/app.py:1879
 msgid "Dark"
 msgstr "Dark"
 
-#: proton_drive_linux/app.py:1878
+#: proton_drive_linux/app.py:1879
 msgid "Light"
 msgstr "Light"
 
-#: proton_drive_linux/app.py:1878
+#: proton_drive_linux/app.py:1879
 msgid "System"
 msgstr "System"
 
-#: proton_drive_linux/app.py:1879
+#: proton_drive_linux/app.py:1880
 msgid "Theme"
 msgstr "Theme"
 
-#: proton_drive_linux/app.py:1887
+#: proton_drive_linux/app.py:1888
 msgid "Language"
 msgstr "Language"
 
-#: proton_drive_linux/app.py:1888
+#: proton_drive_linux/app.py:1889
 msgid ""
-"Same as Proton Drive on Windows: System default follows the OS locale; "
-"English forces this app’s English catalog. Changing language restarts the "
-"app."
+"Same as Proton Drive on Windows: System default follows the OS locale. "
+"English, Russian, Simplified Chinese, Arabic, Italian, Portuguese, Spanish, "
+"Korean, and Japanese load this app’s catalogs. Changing language restarts "
+"the app. Arabic uses a right-to-left layout."
 msgstr ""
-"Same as Proton Drive on Windows: System default follows the OS locale; "
-"English forces this app’s English catalog. Changing language restarts the "
-"app."
+"Same as Proton Drive on Windows: System default follows the OS locale. "
+"English, Russian, Simplified Chinese, Arabic, Italian, Portuguese, Spanish, "
+"Korean, and Japanese load this app’s catalogs. Changing language restarts "
+"the app. Arabic uses a right-to-left layout."
 
-#: proton_drive_linux/app.py:1899
+#: proton_drive_linux/app.py:1900
 msgid "Downloads"
 msgstr "Downloads"
 
-#: proton_drive_linux/app.py:1900
+#: proton_drive_linux/app.py:1901
 msgid "One-off downloads from the toolbar. This is not the always-on folder."
 msgstr "One-off downloads from the toolbar. This is not the always-on folder."
 
-#: proton_drive_linux/app.py:1902 proton_drive_linux/app.py:2037
+#: proton_drive_linux/app.py:1903 proton_drive_linux/app.py:2038
 msgid "Download folder"
 msgstr "Download folder"
 
-#: proton_drive_linux/app.py:1910 proton_drive_linux/app.py:2052
+#: proton_drive_linux/app.py:1911 proton_drive_linux/app.py:2053
 msgid "Always-on folder"
 msgstr "Always-on folder"
 
-#: proton_drive_linux/app.py:1911
+#: proton_drive_linux/app.py:1912
 msgid ""
 "Official CLI 0.8.0 cannot FUSE-mount Drive and has no Activity log. Enable "
 "keeps a real local directory in skip/merge sync with /my-files via a niced "
@@ -961,55 +963,55 @@ msgstr ""
 "replaced. Worker, last pass, and errors below come from this app's worker "
 "lock and ~/.config/proton-drive-linux/sync-status.json."
 
-#: proton_drive_linux/app.py:1914
+#: proton_drive_linux/app.py:1915
 msgid "Enable always-on folder"
 msgstr "Enable always-on folder"
 
-#: proton_drive_linux/app.py:1915
+#: proton_drive_linux/app.py:1916
 msgid "Starts the CLI worker now and with this session. Not a kernel mount."
 msgstr "Starts the CLI worker now and with this session. Not a kernel mount."
 
-#: proton_drive_linux/app.py:1928
+#: proton_drive_linux/app.py:1929
 msgid "Worker"
 msgstr "Worker"
 
-#: proton_drive_linux/app.py:1928 proton_drive_linux/sync.py:266
+#: proton_drive_linux/app.py:1929 proton_drive_linux/sync.py:266
 msgid "Stopped"
 msgstr "Stopped"
 
-#: proton_drive_linux/app.py:1929
+#: proton_drive_linux/app.py:1930
 msgid "Sync now"
 msgstr "Sync now"
 
-#: proton_drive_linux/app.py:1933
+#: proton_drive_linux/app.py:1934
 msgid "Last successful pass"
 msgstr "Last successful pass"
 
-#: proton_drive_linux/app.py:1933 proton_drive_linux/sync.py:235
+#: proton_drive_linux/app.py:1934 proton_drive_linux/sync.py:235
 msgid "Never"
 msgstr "Never"
 
-#: proton_drive_linux/app.py:1935
+#: proton_drive_linux/app.py:1936
 msgid "Files last pass"
 msgstr "Files last pass"
 
-#: proton_drive_linux/app.py:1935 proton_drive_linux/sync.py:247
+#: proton_drive_linux/app.py:1936 proton_drive_linux/sync.py:247
 msgid "No completed pass yet"
 msgstr "No completed pass yet"
 
-#: proton_drive_linux/app.py:1937
+#: proton_drive_linux/app.py:1938
 msgid "Last error"
 msgstr "Last error"
 
-#: proton_drive_linux/app.py:1937 proton_drive_linux/sync.py:254
+#: proton_drive_linux/app.py:1938 proton_drive_linux/sync.py:254
 msgid "None"
 msgstr "None"
 
-#: proton_drive_linux/app.py:1946
+#: proton_drive_linux/app.py:1947
 msgid "Startup"
 msgstr "Startup"
 
-#: proton_drive_linux/app.py:1947
+#: proton_drive_linux/app.py:1948
 msgid ""
 "XDG autostart for this GUI. Enabling the always-on folder turns this on so "
 "the worker comes back after login."
@@ -1017,24 +1019,24 @@ msgstr ""
 "XDG autostart for this GUI. Enabling the always-on folder turns this on so "
 "the worker comes back after login."
 
-#: proton_drive_linux/app.py:1949
+#: proton_drive_linux/app.py:1950
 msgid "Start with this session"
 msgstr "Start with this session"
 
-#: proton_drive_linux/app.py:2108 proton_drive_linux/sync.py:265
+#: proton_drive_linux/app.py:2109 proton_drive_linux/sync.py:265
 #, python-brace-format
 msgid "Running (pid {pid})"
 msgstr "Running (pid {pid})"
 
-#: proton_drive_linux/app.py:2133
+#: proton_drive_linux/app.py:2134
 msgid "Official proton-drive binary"
 msgstr "Official proton-drive binary"
 
-#: proton_drive_linux/i18n.py:69
+#: proton_drive_linux/i18n.py:142
 msgid "System default"
 msgstr "System default"
 
-#: proton_drive_linux/i18n.py:70
+#: proton_drive_linux/i18n.py:143
 msgid "English"
 msgstr "English"
 

@@ -47,7 +47,7 @@ from .config import (
     set_gui_busy,
     sync_folder as configured_sync_folder,
 )
-from .i18n import _, language_choices, ngettext, normalize_language
+from .i18n import _, apply_gtk_direction, language_choices, ngettext, normalize_language, restore_session_locale_env
 from .sync import activity_snapshot, due_for_pass, format_status_line, mark_worker_idle, mark_worker_stopped, spawn_worker
 from .paths import (
     ACCOUNT_URL,
@@ -1682,6 +1682,7 @@ class DriveApp(Adw.Application):
         if self._tray is not None:
             self._tray.stop()
             self._tray = None
+        restore_session_locale_env()
         os.execv(sys.executable, [sys.executable, *sys.argv])
 
     def quit_from_tray(self) -> None:
@@ -1885,7 +1886,7 @@ class SettingsDialog(Adw.PreferencesDialog):
         languages = Gtk.StringList.new([label for _code, label in choices])
         self.language_row = Adw.ComboRow(
             title=_("Language"),
-            subtitle=_("Same as Proton Drive on Windows: System default follows the OS locale; English forces this app’s English catalog. Changing language restarts the app."),
+            subtitle=_("Same as Proton Drive on Windows: System default follows the OS locale. English, Russian, Simplified Chinese, Arabic, Italian, Portuguese, Spanish, Korean, and Japanese load this app’s catalogs. Changing language restarts the app. Arabic uses a right-to-left layout."),
             model=languages,
         )
         current_lang = normalize_language(self.cfg.get("language"))
@@ -2168,6 +2169,7 @@ def main() -> int:
 
     install_i18n()
     Adw.init()
+    apply_gtk_direction()
     os.environ.setdefault("ADW_DISABLE_PORTAL", "0")
     apply_theme()
     app = DriveApp()

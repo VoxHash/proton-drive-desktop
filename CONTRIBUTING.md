@@ -12,7 +12,7 @@ python3 -m proton_drive_linux
 
 Requires Proton's official `proton-drive` CLI and a signed-in session.
 
-UI strings use GNU gettext. After changing `_()` / `ngettext()` calls, run `make update-po` then keep `po/en.po` complete (English `msgstr` matching `msgid`). `make user-install` compiles `po/en.po` to `~/.local/share/locale/en/LC_MESSAGES/proton-drive-linux.mo`.
+UI strings use GNU gettext. After changing `_()` / `ngettext()` calls, run `make update-po` then keep every `po/*.po` complete (`en` msgstr matches msgid; other locales must not leave English `msgstr`). `make user-install` compiles all catalogs under `LOCALES` to `~/.local/share/locale/<lang>/LC_MESSAGES/proton-drive-linux.mo`. Portuguese is `po/pt.po` (not `pt_BR`) so `LANGUAGE=pt` and `pt_BR` both load it. Arabic catalogs plus `Gtk.Widget.set_default_direction(RTL)` flip the GTK layout.
 
 ## Pull requests
 

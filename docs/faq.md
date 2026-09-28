@@ -6,7 +6,7 @@
 
 **Where is Help?** Primary menu → Proton Drive Help, which opens https://proton.me/support/drive.
 
-**How do I change the language?** Settings → Language. Options are System default (OS locale, English catalog if the locale has no translation) and English. Changing language writes `language` in `~/.config/proton-drive-linux/gui.json` and restarts this Gio app. The UI is English-only until a complete extra catalog is added.
+**How do I change the language?** Settings → Language. Options are System default (OS locale), English, and complete catalogs for Russian, Simplified Chinese, Arabic, Italian, Portuguese, Spanish, Korean, and Japanese (shown as native names). Changing language writes `language` in `~/.config/proton-drive-linux/gui.json` and restarts this Gio app. Arabic uses a right-to-left GTK layout. Portuguese is gettext locale `pt` so `pt_BR` loads the same catalog.
 
 **How do I update the official CLI?** Settings → CLI version / CLI updates runs live `proton-drive version`. If Proton reports a newer CLI, Download opens https://proton.me/download/drive/cli and CLI Help opens https://proton.me/support/drive-cli. This app does not download or replace Proton’s binary. About shows the same check.
 

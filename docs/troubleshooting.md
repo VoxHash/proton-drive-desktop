@@ -16,6 +16,6 @@
 
 **Tray still shows a folder icon** — install icons with `make user-install`, then restart this GUI (`python3 scripts/proton-drive-linux`). KDE reads `io.github.voxhash.ProtonDriveLinux` from hicolor plus the StatusNotifierItem pixmap.
 
-**Language did not change** — Settings → Language writes `language` in `~/.config/proton-drive-linux/gui.json` and restarts this Gio process. System default follows the OS locale and falls back to English because only `po/en.po` ships. Desktop and AppStream stay English.
+**Language did not change** — Settings → Language writes `language` in `~/.config/proton-drive-linux/gui.json` and restarts this Gio process. Catalogs ship for `en`, `ru`, `zh_CN`, `ar`, `it`, `pt`, `es`, `ko`, and `ja`. System default follows the OS locale and falls back to English if that locale has no catalog. Arabic should flip GTK to RTL. Desktop and AppStream stay English.
 
 **Help does not open** — confirm https://proton.me/support/drive in a browser; the app uses `xdg-open` / GTK URI launcher.

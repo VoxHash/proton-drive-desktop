@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.0 — 2026-09-28
+
+- Complete gettext catalogs for Russian (`ru`), Simplified Chinese (`zh_CN`), Arabic (`ar`), Italian (`it`), Portuguese (`pt`), Spanish (`es`), Korean (`ko`), and Japanese (`ja`)
+- Settings → Language lists System default, English, and each language in its native name; the choice is saved in `gui.json` and restarts this Gio app so strings reload
+- Arabic sets GTK widget direction to right-to-left. Portuguese uses gettext locale `pt` (not a separate `pt_BR`) so `LANGUAGE=pt` and `pt_BR` both load one catalog
+
 ## 1.11.0 — 2026-09-28
 
 - GNU gettext for the GTK UI: `_()` / `ngettext()`, `po/en.po`, and `make user-install` compiles and installs the English `.mo`

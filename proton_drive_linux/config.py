@@ -59,11 +59,9 @@ def load() -> dict[str, Any]:
     sync = str(data.get("sync_folder") or "").strip()
     data["sync_folder"] = sync or default_sync_folder()
     data["sync_enabled"] = bool(data.get("sync_enabled"))
-    language = str(data.get("language") or "system").strip().lower().replace("-", "_")
-    if language in {"en", "en_us", "en_gb", "english"}:
-        data["language"] = "en"
-    else:
-        data["language"] = "system"
+    from .i18n import normalize_language
+
+    data["language"] = normalize_language(data.get("language"))
     return data
 
 

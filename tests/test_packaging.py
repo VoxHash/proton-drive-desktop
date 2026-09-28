@@ -49,12 +49,17 @@ def test_official_icon_installed() -> None:
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     assert "user-install" in makefile
     assert "msgfmt" in makefile
-    assert "locale/en/LC_MESSAGES" in makefile
+    assert "LOCALES := en ru zh_CN ar it pt es ko ja" in makefile
+    assert "locale/$$lang/LC_MESSAGES" in makefile
     potfiles = (ROOT / "po" / "POTFILES.in").read_text(encoding="utf-8")
     assert "proton_drive_linux/app.py" in potfiles
     en_po = (ROOT / "po" / "en.po").read_text(encoding="utf-8")
     assert 'msgid "Settings"' in en_po
     assert 'msgstr "Settings"' in en_po
+    for code in ("ru", "zh_CN", "ar", "it", "pt", "es", "ko", "ja"):
+        po_text = (ROOT / "po" / f"{code}.po").read_text(encoding="utf-8")
+        assert f"Language: {code}" in po_text
+        assert 'msgid "Settings"' in po_text
     pkgbuild = (ROOT / "packaging" / "arch" / "PKGBUILD").read_text(encoding="utf-8")
     assert "proton-drive-linux" in pkgbuild
 

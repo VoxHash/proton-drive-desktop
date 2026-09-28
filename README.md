@@ -11,6 +11,7 @@ Not affiliated with Proton AG. The app/tray icon is Proton’s official Drive ma
 ## Features
 
 - Live listing of My files, Photos, Shared with me, and Trash
+- UI languages: System default, English, Russian, Simplified Chinese, Arabic (RTL), Italian, Portuguese (`pt`), Spanish, Korean, Japanese
 - Photos albums: create, rename, delete, add and remove photos (`proton-drive album`)
 - Share and invitations from the UI (`proton-drive sharing` / `invitation list`)
 - Upload, download, new folder, rename, copy, move, trash, restore, delete permanently, empty trash
@@ -73,7 +74,7 @@ A GitHub source Release is shippable now. It is **not** as easy as Pass (Flathub
 
 ## Usage
 
-Open the primary menu (hamburger) for **Settings**, **Proton Drive Help**, and **About**. Browse folders with Enter or Open. Share (toolbar) invites people and manages public links via the official CLI. Pending invitations appear at the top of **Shared with me**. Rename, Copy, and Move use Adwaita dialogs and the live CLI. In Photos, New album / Rename / Add to album / Remove from album / Delete album call `proton-drive album`. In Trash, Delete permanently removes one selected item (`filesystem delete`) after confirmation; Empty trash still clears all of `/trash`. Upload and download use the portal file dialogs. Settings → **Enable always-on folder** keeps a local directory in sync with `/my-files` using official CLI download/upload in a separate process (not a FUSE mount) and starts the worker now and at login. That Settings group also shows live **Worker** (running/stopped), **Last successful pass**, **Files last pass**, and **Last error** from this app's worker status file — official `proton-drive` has no Activity log. Settings → **CLI version** / **CLI updates** run live `proton-drive version` (Proton’s own latest-vs-newer check). If Proton reports a newer CLI, Download and CLI Help open https://proton.me/download/drive/cli and https://proton.me/support/drive-cli; this app does not download Proton binaries. Settings → **Language** is System default (OS locale) or English; changing it saves `~/.config/proton-drive-linux/gui.json` and restarts this Gio app so gettext reloads. Sign-in, if needed, is `proton-drive auth login` in the browser.
+Open the primary menu (hamburger) for **Settings**, **Proton Drive Help**, and **About**. Browse folders with Enter or Open. Share (toolbar) invites people and manages public links via the official CLI. Pending invitations appear at the top of **Shared with me**. Rename, Copy, and Move use Adwaita dialogs and the live CLI. In Photos, New album / Rename / Add to album / Remove from album / Delete album call `proton-drive album`. In Trash, Delete permanently removes one selected item (`filesystem delete`) after confirmation; Empty trash still clears all of `/trash`. Upload and download use the portal file dialogs. Settings → **Enable always-on folder** keeps a local directory in sync with `/my-files` using official CLI download/upload in a separate process (not a FUSE mount) and starts the worker now and at login. That Settings group also shows live **Worker** (running/stopped), **Last successful pass**, **Files last pass**, and **Last error** from this app's worker status file — official `proton-drive` has no Activity log. Settings → **CLI version** / **CLI updates** run live `proton-drive version` (Proton’s own latest-vs-newer check). If Proton reports a newer CLI, Download and CLI Help open https://proton.me/download/drive/cli and https://proton.me/support/drive-cli; this app does not download Proton binaries. Settings → **Language** is System default, English, Русский, 简体中文, العربية, Italiano, Português, Español, 한국어, or 日本語; changing it saves `~/.config/proton-drive-linux/gui.json` and restarts this Gio app so gettext reloads. Arabic uses a right-to-left GTK layout. Portuguese ships as gettext `pt` (covers `pt_BR` too). Sign-in, if needed, is `proton-drive auth login` in the browser.
 
 ## Configuration
 
@@ -81,7 +82,7 @@ Open the primary menu (hamburger) for **Settings**, **Proton Drive Help**, and *
 | --- | --- | --- |
 | `PROTON_DRIVE_BIN` | Path to official CLI | `proton-drive` on PATH, Settings, or `~/.local/bin/proton-drive` |
 | Settings → Theme | Dark / Light / System | Dark |
-| Settings → Language | System default (OS locale) or English; restarts the app | System default |
+| Settings → Language | System default, English, or ru / zh_CN / ar / it / pt / es / ko / ja (native names; Arabic RTL; `pt` also matches pt_BR); restarts the app | System default |
 | Settings → Download folder | Where toolbar downloads are saved | `~/Downloads` |
 | Settings → Always-on folder | Enable, path, live worker activity (running/stopped, last pass, errors), autostart the skip/merge CLI worker (not FUSE) | `~/Proton Drive`, off until enabled |
 | Settings → CLI version / CLI updates | Live `proton-drive version` (current CLI vs whether Proton reports a newer one) | From the installed CLI |

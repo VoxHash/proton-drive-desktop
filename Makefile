@@ -5,6 +5,7 @@ LIBDIR := $(PREFIX)/lib/proton-drive-linux
 DATADIR := $(PREFIX)/share
 APP_ID := io.github.voxhash.ProtonDriveLinux
 GETTEXT_DOMAIN := proton-drive-linux
+LOCALES := en ru zh_CN ar it pt es ko ja
 
 .PHONY: install user-install uninstall icons-cache pot update-po mo
 
@@ -17,8 +18,10 @@ install: mo
 	install -Dm644 data/$(APP_ID).metainfo.xml "$(DESTDIR)$(DATADIR)/metainfo/$(APP_ID).metainfo.xml"
 	install -d "$(DESTDIR)$(DATADIR)/icons"
 	cp -a data/icons/hicolor "$(DESTDIR)$(DATADIR)/icons/"
-	install -d "$(DESTDIR)$(DATADIR)/locale/en/LC_MESSAGES"
-	install -Dm644 locale/en/LC_MESSAGES/$(GETTEXT_DOMAIN).mo "$(DESTDIR)$(DATADIR)/locale/en/LC_MESSAGES/$(GETTEXT_DOMAIN).mo"
+	@for lang in $(LOCALES); do \
+		install -d "$(DESTDIR)$(DATADIR)/locale/$$lang/LC_MESSAGES"; \
+		install -Dm644 locale/$$lang/LC_MESSAGES/$(GETTEXT_DOMAIN).mo "$(DESTDIR)$(DATADIR)/locale/$$lang/LC_MESSAGES/$(GETTEXT_DOMAIN).mo"; \
+	done
 	-$(MAKE) icons-cache DESTDIR="$(DESTDIR)" PREFIX="$(PREFIX)"
 
 user-install:
@@ -32,7 +35,9 @@ uninstall:
 	rm -f "$(DESTDIR)$(DATADIR)/metainfo/$(APP_ID).metainfo.xml"
 	rm -f "$(DESTDIR)$(DATADIR)/icons/hicolor/"*/apps/$(APP_ID).png
 	rm -f "$(DESTDIR)$(DATADIR)/icons/hicolor/scalable/apps/$(APP_ID).svg"
-	rm -f "$(DESTDIR)$(DATADIR)/locale/en/LC_MESSAGES/$(GETTEXT_DOMAIN).mo"
+	@for lang in $(LOCALES); do \
+		rm -f "$(DESTDIR)$(DATADIR)/locale/$$lang/LC_MESSAGES/$(GETTEXT_DOMAIN).mo"; \
+	done
 
 icons-cache:
 	-gtk-update-icon-cache -f -t "$(DESTDIR)$(DATADIR)/icons/hicolor"
@@ -44,8 +49,12 @@ pot:
 		--files-from=po/POTFILES.in --directory=. --output=po/$(GETTEXT_DOMAIN).pot
 
 update-po: pot
-	msgmerge --update --backup=none po/en.po po/$(GETTEXT_DOMAIN).pot
+	@for lang in $(LOCALES); do \
+		msgmerge --update --backup=none po/$$lang.po po/$(GETTEXT_DOMAIN).pot; \
+	done
 
 mo:
-	install -d locale/en/LC_MESSAGES
-	msgfmt --check -o locale/en/LC_MESSAGES/$(GETTEXT_DOMAIN).mo po/en.po
+	@for lang in $(LOCALES); do \
+		install -d locale/$$lang/LC_MESSAGES; \
+		msgfmt --check -o locale/$$lang/LC_MESSAGES/$(GETTEXT_DOMAIN).mo po/$$lang.po; \
+	done
