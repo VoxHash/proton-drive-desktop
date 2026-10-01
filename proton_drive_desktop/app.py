@@ -2809,7 +2809,7 @@ class DriveApp(Adw.Application):
     def _present_guided_setup(self) -> bool:
         if self._window is None:
             return False
-        GuidedSetupDialog(self._window).present(self._window)
+        GuidedSetupDialog(self._window).present()
         return False
 
     def set_sync_paused(self, paused: bool) -> None:
@@ -3196,7 +3196,7 @@ class GuidedSetupDialog(Adw.MessageDialog):
             self.window._toast(_("CLI checksum did not match Proton’s published SHA-512"))
         else:
             self.window._toast(_("CLI checksum checked"))
-        GuidedSetupDialog(self.window).present(self.window)
+        GuidedSetupDialog(self.window).present()
 
 
 class SettingsDialog(Adw.PreferencesDialog):

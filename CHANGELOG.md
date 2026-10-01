@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.1] — 2026-09-30
+
 ### Added
 
 - `make user-uninstall`, `scripts/uninstall.sh`, and `./install.sh --uninstall` remove the user-install payload under `~/.local` (binary, lib tree, desktop entry, AppStream metainfo, hicolor icons, locale `.mo` files), plus XDG autostart and optional systemd user sync units when present
@@ -15,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Guided setup no longer crashes: `Adw.MessageDialog.present()` is called without a parent argument (transient parent remains set in the constructor), matching other message dialogs
 - `make user-install` rewrites the installed `.desktop` `Exec=` / `TryExec=` to the absolute `~/.local/bin/proton-drive-desktop` path and refreshes the icon cache so desktop menus that check `TryExec` without `~/.local/bin` on `PATH` still show **Proton Drive**
 
 ## [1.13.0] — 2026-09-30

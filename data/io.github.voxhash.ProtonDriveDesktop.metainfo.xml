@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.13.1" date="2026-09-30">
+      <description>
+        <p>Fix Guided setup crash: Adw.MessageDialog.present() must not pass a parent window. make user-install rewrites desktop Exec/TryExec for menu visibility. Uninstall via make user-uninstall / install.sh --uninstall.</p>
+      </description>
+    </release>
     <release version="1.13.0" date="2026-09-30">
       <description>
         <p>Rename to proton-drive-desktop. Multi-folder sync pairs, pause/resume, Guided setup, Activity history. Desktop UX parity (DnD, transfer queue, search, breadcrumbs, grid, multi-select, Properties, window memory, notifications). Sync quality (excludes, selective root, preview, direction, systemd timer/path, delta, retry, timeout, seed). GitHub Releases, install.sh, optional AppImage. CLI SHA-512 verify and threat-model docs.</p>
