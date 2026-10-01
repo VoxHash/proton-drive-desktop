@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# AppImage entrypoint for Proton Drive Desktop (GTK GUI only).
+# Finds the official proton-drive CLI on the host PATH — never ships it.
+set -euo pipefail
+
+HERE="$(dirname "$(readlink -f "${0}")")"
+
+# Prefer the bundled launcher, then the user's CLI install location, then system bins.
+# Do not place a Proton CLI inside this AppImage; PATH still searches the host.
+export PATH="${HERE}/usr/bin:${HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin${PATH:+:${PATH}}"
+export XDG_DATA_DIRS="${HERE}/usr/share${XDG_DATA_DIRS:+:${XDG_DATA_DIRS}}"
+# gettext catalogs installed under usr/share/locale
+export TEXTDOMAINDIR="${HERE}/usr/share/locale${TEXTDOMAINDIR:+:${TEXTDOMAINDIR}}"
+
+if [ ! -x "${HERE}/usr/bin/proton-drive-desktop" ]; then
+  echo "proton-drive-desktop missing inside AppImage at ${HERE}/usr/bin" >&2
+  exit 1
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required on the host to run this AppImage." >&2
+  exit 1
+fi
+
+exec "${HERE}/usr/bin/proton-drive-desktop" "$@"

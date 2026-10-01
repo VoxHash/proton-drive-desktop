@@ -12,8 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from proton_drive_linux import config  # noqa: E402
-from proton_drive_linux.i18n import (  # noqa: E402
+from proton_drive_desktop import config  # noqa: E402
+from proton_drive_desktop.i18n import (  # noqa: E402
     CATALOG_CODES,
     GETTEXT_DOMAIN,
     LANGUAGE_ENGLISH,
@@ -65,7 +65,7 @@ def test_gettext_returns_english() -> None:
 
 
 def test_language_setting_persists(tmp_path: Path | None = None) -> None:
-    folder = tmp_path or Path("/tmp/proton-drive-linux-i18n-config")
+    folder = tmp_path or Path("/tmp/proton-drive-desktop-i18n-config")
     folder.mkdir(parents=True, exist_ok=True)
     original_dir, original_path = config.CONFIG_DIR, config.CONFIG_PATH
     config.CONFIG_DIR = folder
@@ -126,12 +126,12 @@ def test_english_catalog_compiles() -> None:
     assert 'msgid "Language"' in text
     assert "Language: en" in text
     listed = potfiles.read_text(encoding="utf-8")
-    assert "proton_drive_linux/app.py" in listed
-    assert "proton_drive_linux/i18n.py" in listed
+    assert "proton_drive_desktop/app.py" in listed
+    assert "proton_drive_desktop/i18n.py" in listed
     make = makefile.read_text(encoding="utf-8")
     assert "msgfmt" in make
     assert "LOCALES := en ru zh_CN ar it pt es ko ja" in make
-    dest = Path("/tmp/proton-drive-linux-en-test.mo")
+    dest = Path("/tmp/proton-drive-desktop-en-test.mo")
     proc = subprocess.run(["msgfmt", "--check", "-o", str(dest), str(po)], check=True, capture_output=True, text=True)
     assert dest.is_file()
     assert proc.returncode == 0
@@ -150,7 +150,7 @@ def test_each_catalog_is_not_english() -> None:
         assert "TODO" not in text
         assert "PLACEHOLDER" not in text
         assert "lorem" not in text.lower()
-        dest = Path(f"/tmp/proton-drive-linux-{code}-test.mo")
+        dest = Path(f"/tmp/proton-drive-desktop-{code}-test.mo")
         subprocess.run(["msgfmt", "--check", "-o", str(dest), str(po)], check=True, capture_output=True, text=True)
         dest.unlink(missing_ok=True)
         install(code)

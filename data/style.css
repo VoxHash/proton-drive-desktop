@@ -20,3 +20,7 @@
   color: #a7a4c5;
   font-size: 12px;
 }
+
+.file-grid-item {
+  border-radius: 8px;
+}

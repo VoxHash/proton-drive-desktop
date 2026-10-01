@@ -45,11 +45,11 @@ proton-drive version -j
 Always-on local folder (not a FUSE mount; separate process):
 
 ```bash
-python3 -m proton_drive_linux.sync --once
-python3 -m proton_drive_linux.sync --force
-python3 -m proton_drive_linux.sync --status
+python3 -m proton_drive_desktop.sync --once
+python3 -m proton_drive_desktop.sync --force
+python3 -m proton_drive_desktop.sync --status
 ```
 
-`--status` prints `~/.config/proton-drive-linux/sync-status.json` (worker state, last success, last error, files copied). Settings reads the same file plus `sync.lock`. Official CLI 0.8.0 has no `mount` / FUSE command and no Activity log. `filesystem delete` permanently removes one already-trashed item; `filesystem empty-trash` still clears all of `/trash`.
+`--status` prints `~/.config/proton-drive-desktop/sync-status.json` (worker state, last success, last error, files copied). Settings reads the same file plus `sync.lock`. Official CLI 0.8.0 has no `mount` / FUSE command, no Activity log, and no account/storage quota command (`proton-drive --help` lists `auth`, `filesystem`, `sharing`, `invitation`, `album`, `photo` only). Settings → Storage quota probes that help text and shows Unavailable rather than inventing numbers. `filesystem delete` permanently removes one already-trashed item; `filesystem empty-trash` still clears all of `/trash`.
 
-Extract GTK UI strings with `make pot` / `make update-po`. `make user-install` runs `msgfmt` and installs `en`, `ru`, `zh_CN`, `ar`, `it`, `pt`, `es`, `ko`, and `ja` under `LC_MESSAGES/proton-drive-linux.mo`. Portuguese is `pt` so `LANGUAGE=pt_BR` still loads it.
+Extract GTK UI strings with `make pot` / `make update-po`. `make user-install` runs `msgfmt` and installs `en`, `ru`, `zh_CN`, `ar`, `it`, `pt`, `es`, `ko`, and `ja` under `LC_MESSAGES/proton-drive-desktop.mo`. Portuguese is `pt` so `LANGUAGE=pt_BR` still loads it.

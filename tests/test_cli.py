@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -12,12 +13,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from proton_drive_linux.cli import (  # noqa: E402
+from proton_drive_desktop.cli import (  # noqa: E402
     CliError,
     ProtonDriveCli,
     account_email,
     added_by_email,
     album_cli_path,
+    cli_help_exposes_storage_quota,
     format_size,
     invitation_name,
     invitation_uid,
@@ -28,7 +30,7 @@ from proton_drive_linux.cli import (  # noqa: E402
     parse_version_output,
     photo_cli_path,
 )
-from proton_drive_linux.paths import CLI_DOWNLOAD_URL  # noqa: E402
+from proton_drive_desktop.paths import CLI_DOWNLOAD_URL  # noqa: E402
 
 
 def test_join_path() -> None:
@@ -75,6 +77,28 @@ def test_parse_version_newer() -> None:
     assert "0.8.0 available" in info.summary()
 
 
+def test_cli_help_exposes_storage_quota() -> None:
+    sample_0_8 = """
+Usage:
+    auth login
+    auth logout
+    filesystem list [-t TYPE] path
+    sharing status path
+    invitation list
+    album list
+    photo timeline [-d]
+
+General options:
+    -h|--help: Show extended help for a command
+"""
+    assert cli_help_exposes_storage_quota(sample_0_8) is False
+    # "Usage:" heading must not count as a usage/quota command
+    assert cli_help_exposes_storage_quota("Usage:\n    auth login\n") is False
+    assert cli_help_exposes_storage_quota("Usage:\n    quota show\n") is True
+    assert cli_help_exposes_storage_quota("Usage:\n    account storage\n") is True
+    assert cli_help_exposes_storage_quota("Usage:\n    auth usage\n") is True
+
+
 def test_parse_version_incomplete() -> None:
     raw = "Proton Drive CLI cli-drive@0.8.0+06e8c605\nProton Drive SDK js@0.21.0+06e8c605"
     info = parse_version_output(raw)
@@ -82,6 +106,56 @@ def test_parse_version_incomplete() -> None:
     assert info.latest is False
     assert info.update_available is False
     assert "did not report" in info.status_line
+
+
+def test_parse_transfer_progress_lines() -> None:
+    from proton_drive_desktop.cli import parse_transfer_line, scrape_transfer_text
+
+    queue = parse_transfer_line("ℹ Uploaded 0 | Queued 1")
+    assert queue is not None
+    assert queue.direction == "upload"
+    assert queue.completed == 0
+    assert queue.queued == 1
+    assert "Queued 1" in queue.status_text()
+
+    progress = parse_transfer_line("⠋ 36.07% pdl-progress-pipe.bin (6.00 MiB)")
+    assert progress is not None
+    assert progress.percent == 36.07
+    assert progress.name == "pdl-progress-pipe.bin"
+    assert progress.size_label == "6.00 MiB"
+    assert "36.07%" in progress.status_text()
+
+    down_queue = parse_transfer_line("ℹ Downloaded 1 | Queued 2")
+    assert down_queue is not None
+    assert down_queue.direction == "download"
+    assert down_queue.completed == 1
+    assert down_queue.queued == 2
+
+    summary = parse_transfer_line("  Uploaded: 1 items (4.00 MiB)")
+    assert summary is not None
+    assert summary.direction == "upload"
+    assert summary.summary == "Uploaded: 1 items (4.00 MiB)"
+
+    done = parse_transfer_line("✅ pdl-progress-nov.bin")
+    assert done is not None
+    assert done.percent == 100.0
+    assert done.name == "pdl-progress-nov.bin"
+
+    assert parse_transfer_line("Transfer summary:") is None
+    assert parse_transfer_line("2026-09-29T22:40:42.843Z INFO [cli] Version") is None
+
+    leftover, events = scrape_transfer_text(
+        "\rℹ Uploaded 0 | Queued 1\r⠋ 10.00% sample.bin (1.00 MiB)\r⠙ 20.50% sample.bin (1.00 MiB)\n"
+    )
+    assert leftover == ""
+    assert len(events) == 3
+    assert events[0].queued == 1
+    assert events[1].percent == 10.0
+    assert events[2].percent == 20.5
+
+    partial, more = scrape_transfer_text("⠋ 1.00% partial.bin (")
+    assert partial == "⠋ 1.00% partial.bin ("
+    assert more == []
 
 
 class CaptureCli(ProtonDriveCli):
@@ -152,6 +226,15 @@ def test_invitation_helpers() -> None:
     assert member_email(item) == "reviewer@proton.me"
     assert member_role(item) == "editor"
     assert invitation_uid({"invitationUid": "legacy"}) == "legacy"
+
+
+def test_live_cli_has_no_storage_quota_command() -> None:
+    cli = ProtonDriveCli()
+    help_text = cli.help_text()
+    assert "filesystem list" in help_text.lower() or "filesystem download" in help_text.lower()
+    assert cli_help_exposes_storage_quota(help_text) is False
+    assert cli.storage_quota_available() is False
+    print("cli has no account/storage quota command")
 
 
 def test_live_version_check() -> None:
@@ -447,21 +530,35 @@ def test_live_rename_copy_move() -> None:
                     pass
 
 
+def _offline_mode() -> bool:
+    flag = os.environ.get("PROTON_DRIVE_OFFLINE", "").strip().lower()
+    if flag in {"1", "true", "yes", "on"}:
+        return True
+    # GitHub Actions and other CI set CI=true; never hang on live Drive APIs there.
+    return os.environ.get("CI", "").strip().lower() in {"1", "true", "yes"}
+
+
 if __name__ == "__main__":
     test_join_path()
     test_parse_version_latest()
     test_parse_version_newer()
+    test_cli_help_exposes_storage_quota()
     test_parse_version_incomplete()
+    test_parse_transfer_progress_lines()
     test_filesystem_mutate_commands()
     test_album_mutate_commands()
     test_invitation_helpers()
-    test_live_version_check()
-    test_live_my_files()
-    test_live_photos_timeline()
-    test_live_album_management()
-    test_live_sharing_and_invitations()
-    test_empty_trash_help()
-    test_delete_help_and_command()
-    test_live_permanent_delete()
-    test_live_rename_copy_move()
+    if _offline_mode():
+        print("offline mode: skipped live Proton CLI / API checks")
+    else:
+        test_live_cli_has_no_storage_quota_command()
+        test_live_version_check()
+        test_live_my_files()
+        test_live_photos_timeline()
+        test_live_album_management()
+        test_live_sharing_and_invitations()
+        test_empty_trash_help()
+        test_delete_help_and_command()
+        test_live_permanent_delete()
+        test_live_rename_copy_move()
     print("all checks passed")

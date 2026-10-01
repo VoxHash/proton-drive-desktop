@@ -1,9 +1,9 @@
 # API
 
-Python wrapper: `proton_drive_linux.cli.ProtonDriveCli`.
+Python wrapper: `proton_drive_desktop.cli.ProtonDriveCli`.
 
 ```python
-from proton_drive_linux.cli import ProtonDriveCli
+from proton_drive_desktop.cli import ProtonDriveCli
 cli = ProtonDriveCli()
 print(cli.version_info())
 print([n["name"] for n in cli.list("/my-files")])
@@ -24,9 +24,9 @@ cli.album_remove_photo("/albums/Summer", ["/photos/PHOTO-UID"])
 Always-on folder worker (separate process, not FUSE):
 
 ```python
-from proton_drive_linux.sync import activity_snapshot, format_status_line, run_once
+from proton_drive_desktop.sync import activity_snapshot, format_status_line, run_once
 print(activity_snapshot())
 print(format_status_line())
-# python3 -m proton_drive_linux.sync --status  # same JSON Settings reads
+# python3 -m proton_drive_desktop.sync --status  # same JSON Settings reads
 # run_once(force=True)  # pulls /my-files into the configured folder
 ```

@@ -4,9 +4,15 @@ from __future__ import annotations
 
 import json
 import os
+import pty
 import re
+import select
 import shutil
+import signal
 import subprocess
+import threading
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -18,6 +24,35 @@ class CliError(RuntimeError):
     pass
 
 
+class TransferCancelled(CliError):
+    """Raised when cancel_transfer() kills the active CLI process tree."""
+
+
+def kill_owned_process_tree(pid: int, *, grace_seconds: float = 2.0) -> None:
+    """SIGTERM then SIGKILL the process group for a Popen with start_new_session=True."""
+    if pid <= 0:
+        return
+
+    def _signal_group(sig: int) -> None:
+        try:
+            os.killpg(pid, sig)
+        except (ProcessLookupError, PermissionError, OSError):
+            try:
+                os.kill(pid, sig)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
+
+    _signal_group(signal.SIGTERM)
+    deadline = time.monotonic() + max(0.0, grace_seconds)
+    while time.monotonic() < deadline:
+        try:
+            os.kill(pid, 0)
+        except (ProcessLookupError, PermissionError, OSError):
+            return
+        time.sleep(0.05)
+    _signal_group(signal.SIGKILL)
+
+
 _CLI_LINE = "Proton Drive CLI "
 _SDK_LINE = "Proton Drive SDK "
 _LATEST_LINE = "You are running the latest version."
@@ -27,6 +62,52 @@ _NEWER_RE = re.compile(
 )
 _DOWNLOAD_RE = re.compile(r"Download at\s+(\S+)", re.IGNORECASE)
 _SEMVER_RE = re.compile(r"^(\d+\.\d+\.\d+)")
+_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)")
+_SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+_PROGRESS_RE = re.compile(
+    rf"^[{re.escape(_SPINNER_CHARS)}]?\s*(\d+(?:\.\d+)?)%\s+(.+?)\s+\(([^)]+)\)\s*$"
+)
+_QUEUE_RE = re.compile(
+    r"^(?:ℹ\s*)?(Uploaded|Downloaded)\s+(\d+)\s*\|\s*Queued\s+(\d+)\s*$",
+    re.IGNORECASE,
+)
+_SUMMARY_RE = re.compile(
+    r"^\s*(Uploaded|Downloaded):\s+(.+)$",
+    re.IGNORECASE,
+)
+_DONE_RE = re.compile(r"^[✅✔]\s*(.+?)\s*$")
+
+
+@dataclass(frozen=True)
+class TransferProgress:
+    """Best-effort scrape of official CLI spinner / summary text (no JSON progress yet)."""
+
+    percent: float | None = None
+    name: str = ""
+    size_label: str = ""
+    completed: int | None = None
+    queued: int | None = None
+    direction: str = ""
+    summary: str = ""
+    raw: str = ""
+
+    def status_text(self) -> str:
+        if self.summary:
+            return self.summary
+        if self.percent is not None:
+            bits: list[str] = []
+            if self.name:
+                bits.append(self.name)
+            bits.append(f"{self.percent:.2f}%")
+            if self.size_label:
+                bits.append(f"({self.size_label})")
+            return " — ".join(bits)
+        if self.completed is not None and self.queued is not None:
+            verb = "Uploaded" if self.direction != "download" else "Downloaded"
+            return f"{verb} {self.completed} | Queued {self.queued}"
+        if self.name:
+            return self.name
+        return self.raw or "Transferring…"
 
 
 @dataclass(frozen=True)
@@ -121,6 +202,90 @@ def parse_version_output(text: str) -> CliVersionInfo:
         download_url=download_url if update_available else CLI_DOWNLOAD_URL,
         status_line=status_line,
     )
+
+
+# Top-level or account/auth subcommands that would advertise account storage quota.
+_QUOTA_HELP_COMMANDS = frozenset({"quota", "storage", "usage"})
+_QUOTA_HELP_PARENTS = frozenset({"account", "auth"})
+
+
+def cli_help_exposes_storage_quota(help_text: str) -> bool:
+    """True if live `proton-drive --help` lists an account/storage quota command.
+
+    Matches indented usage lines only (skips the ``Usage:`` heading). CLI 0.8.0
+    has no such command; rivals confirm the same. Never invents quota numbers.
+    """
+    for line in (help_text or "").splitlines():
+        if not line.startswith("    "):
+            continue
+        parts = line.strip().lower().split()
+        if not parts:
+            continue
+        if parts[0] in _QUOTA_HELP_COMMANDS:
+            return True
+        if (
+            parts[0] in _QUOTA_HELP_PARENTS
+            and len(parts) > 1
+            and parts[1] in _QUOTA_HELP_COMMANDS | frozenset({"space", "quota"})
+        ):
+            return True
+    return False
+
+
+def strip_cli_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text or "")
+
+
+def parse_transfer_line(line: str) -> TransferProgress | None:
+    """Parse one spinner / queue / summary line from `proton-drive` upload|download output."""
+    cleaned = strip_cli_ansi(line).strip()
+    if not cleaned or cleaned == "Transfer summary:":
+        return None
+    progress = _PROGRESS_RE.match(cleaned)
+    if progress:
+        return TransferProgress(
+            percent=float(progress.group(1)),
+            name=progress.group(2).strip(),
+            size_label=progress.group(3).strip(),
+            raw=cleaned,
+        )
+    queue = _QUEUE_RE.match(cleaned)
+    if queue:
+        direction = "upload" if queue.group(1).lower() == "uploaded" else "download"
+        return TransferProgress(
+            completed=int(queue.group(2)),
+            queued=int(queue.group(3)),
+            direction=direction,
+            raw=cleaned,
+        )
+    summary = _SUMMARY_RE.match(cleaned)
+    if summary:
+        direction = "upload" if summary.group(1).lower() == "uploaded" else "download"
+        detail = summary.group(2).strip()
+        return TransferProgress(
+            direction=direction,
+            summary=f"{summary.group(1)}: {detail}",
+            raw=cleaned,
+        )
+    done = _DONE_RE.match(cleaned)
+    if done:
+        return TransferProgress(name=done.group(1).strip(), percent=100.0, raw=cleaned)
+    return None
+
+
+def scrape_transfer_text(text: str) -> tuple[str, list[TransferProgress]]:
+    """Split CR/LF CLI spinner stream; return leftover partial line and parsed events."""
+    if not text:
+        return "", []
+    normalized = strip_cli_ansi(text).replace("\r\n", "\n").replace("\r", "\n")
+    parts = normalized.split("\n")
+    leftover = parts[-1]
+    events: list[TransferProgress] = []
+    for part in parts[:-1]:
+        parsed = parse_transfer_line(part)
+        if parsed is not None:
+            events.append(parsed)
+    return leftover, events
 
 
 class NotLoggedIn(CliError):
@@ -272,6 +437,19 @@ def format_size(num: int | None) -> str:
 class ProtonDriveCli:
     def __init__(self, binary: str | None = None) -> None:
         self.binary = binary or find_binary()
+        self._transfer_proc: subprocess.Popen | None = None
+        self._transfer_lock = threading.Lock()
+        self._transfer_cancelled = False
+
+    def cancel_transfer(self) -> bool:
+        """Kill the owned process tree of the active upload/download. Returns True if signalled."""
+        with self._transfer_lock:
+            self._transfer_cancelled = True
+            proc = self._transfer_proc
+        if proc is None or proc.poll() is not None:
+            return False
+        kill_owned_process_tree(proc.pid)
+        return True
 
     def run(self, args: list[str], *, json_out: bool = True, timeout: int = 180) -> Any:
         cmd = [self.binary, *args]
@@ -300,6 +478,123 @@ class ProtonDriveCli:
         except json.JSONDecodeError as exc:
             raise CliError(f"Invalid JSON from proton-drive: {stdout[:400]}") from exc
 
+    def run_transfer(
+        self,
+        args: list[str],
+        *,
+        timeout: int = 3600,
+        on_progress: Callable[[TransferProgress], None] | None = None,
+    ) -> str:
+        """Run upload/download on a PTY so the CLI emits spinner progress text."""
+        cmd = [self.binary, *args]
+        master, slave = pty.openpty()
+        output_chunks: list[str] = []
+        leftover = ""
+        with self._transfer_lock:
+            self._transfer_cancelled = False
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdin=slave,
+                stdout=slave,
+                stderr=slave,
+                close_fds=True,
+                start_new_session=True,
+            )
+        finally:
+            os.close(slave)
+        with self._transfer_lock:
+            self._transfer_proc = proc
+            cancelled_at_start = self._transfer_cancelled
+
+        deadline = time.monotonic() + timeout
+        returncode = -1
+        try:
+            if cancelled_at_start:
+                kill_owned_process_tree(proc.pid)
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
+                raise TransferCancelled("Transfer cancelled")
+            while True:
+                with self._transfer_lock:
+                    cancelled = self._transfer_cancelled
+                if cancelled:
+                    kill_owned_process_tree(proc.pid)
+                    try:
+                        proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        pass
+                    raise TransferCancelled("Transfer cancelled")
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    kill_owned_process_tree(proc.pid)
+                    try:
+                        proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        pass
+                    raise CliError("proton-drive transfer timed out")
+                ready, _, _ = select.select([master], [], [], min(0.25, remaining))
+                if ready:
+                    try:
+                        chunk = os.read(master, 4096)
+                    except OSError:
+                        chunk = b""
+                    if chunk:
+                        text = chunk.decode("utf-8", "replace")
+                        output_chunks.append(text)
+                        leftover, events = scrape_transfer_text(leftover + text)
+                        if on_progress:
+                            for event in events:
+                                on_progress(event)
+                        continue
+                if proc.poll() is not None:
+                    while True:
+                        try:
+                            more_ready, _, _ = select.select([master], [], [], 0)
+                        except (ValueError, OSError):
+                            break
+                        if not more_ready:
+                            break
+                        try:
+                            chunk = os.read(master, 4096)
+                        except OSError:
+                            break
+                        if not chunk:
+                            break
+                        text = chunk.decode("utf-8", "replace")
+                        output_chunks.append(text)
+                        leftover, events = scrape_transfer_text(leftover + text)
+                        if on_progress:
+                            for event in events:
+                                on_progress(event)
+                    if leftover and on_progress:
+                        parsed = parse_transfer_line(leftover)
+                        if parsed is not None:
+                            on_progress(parsed)
+                    break
+            returncode = proc.wait(timeout=5)
+        finally:
+            with self._transfer_lock:
+                if self._transfer_proc is proc:
+                    self._transfer_proc = None
+                was_cancelled = self._transfer_cancelled
+                self._transfer_cancelled = False
+            try:
+                os.close(master)
+            except OSError:
+                pass
+
+        if was_cancelled:
+            raise TransferCancelled("Transfer cancelled")
+        combined = strip_cli_ansi("".join(output_chunks)).strip()
+        if returncode != 0:
+            if "need to login" in combined.lower():
+                raise NotLoggedIn(combined)
+            raise CliError(combined or f"proton-drive exited {returncode}")
+        return combined
+
     def version(self, *extra: str) -> str:
         proc = subprocess.run(
             [self.binary, "version", *extra],
@@ -316,6 +611,21 @@ class ProtonDriveCli:
         if info.cli_version or info.latest or info.update_available:
             return info
         return parse_version_output(self.version())
+
+    def help_text(self) -> str:
+        """Raw `proton-drive --help` (used to probe for quota / mount commands)."""
+        proc = subprocess.run(
+            [self.binary, "--help"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        return f"{proc.stdout or ''}\n{proc.stderr or ''}".strip()
+
+    def storage_quota_available(self) -> bool:
+        """Whether the installed CLI advertises an account/storage quota command."""
+        return cli_help_exposes_storage_quota(self.help_text())
 
     def list(self, path: str) -> list[dict[str, Any]]:
         data = self.run(["filesystem", "list", path])
@@ -365,18 +675,55 @@ class ProtonDriveCli:
     def empty_trash(self) -> None:
         self.run(["filesystem", "empty-trash"], json_out=False)
 
-    def upload(self, local_paths: list[str], parent: str) -> None:
-        self.run(
-            ["filesystem", "upload", *local_paths, parent, "-f", "skip", "-d", "merge", "-t"],
-            json_out=False,
+    def upload(
+        self,
+        local_paths: list[str],
+        parent: str,
+        *,
+        file_conflict: str = "skip",
+        folder_conflict: str = "merge",
+        on_progress: Callable[[TransferProgress], None] | None = None,
+    ) -> None:
+        # Official CLI: -f create-new-revision|rename|replace|skip; -d merge|rename|replace|skip
+        self.run_transfer(
+            [
+                "filesystem",
+                "upload",
+                *local_paths,
+                parent,
+                "-f",
+                file_conflict,
+                "-d",
+                folder_conflict,
+                "-t",
+            ],
             timeout=3600,
+            on_progress=on_progress,
         )
 
-    def download(self, remote_path: str, local_folder: str) -> None:
-        self.run(
-            ["filesystem", "download", remote_path, local_folder, "-f", "skip", "-d", "merge"],
-            json_out=False,
+    def download(
+        self,
+        remote_path: str,
+        local_folder: str,
+        *,
+        file_conflict: str = "skip",
+        folder_conflict: str = "merge",
+        on_progress: Callable[[TransferProgress], None] | None = None,
+    ) -> None:
+        # Official CLI: -f rename|remove|skip; -d merge|rename|remove|skip
+        self.run_transfer(
+            [
+                "filesystem",
+                "download",
+                remote_path,
+                local_folder,
+                "-f",
+                file_conflict,
+                "-d",
+                folder_conflict,
+            ],
             timeout=3600,
+            on_progress=on_progress,
         )
 
     def info(self, path: str) -> dict[str, Any]:
@@ -459,18 +806,29 @@ class ProtonDriveCli:
     def album_remove_photo(self, album_path: str, photo_paths: list[str]) -> Any:
         return self.run(["album", "remove-photo", album_path, *photo_paths])
 
-    def photo_download(self, remote_path: str, local_folder: str) -> None:
-        self.run(
+    def photo_download(
+        self,
+        remote_path: str,
+        local_folder: str,
+        *,
+        on_progress: Callable[[TransferProgress], None] | None = None,
+    ) -> None:
+        self.run_transfer(
             ["photo", "download", remote_path, local_folder, "-c", "rename"],
-            json_out=False,
             timeout=3600,
+            on_progress=on_progress,
         )
 
-    def photo_upload(self, local_paths: list[str]) -> None:
-        self.run(
+    def photo_upload(
+        self,
+        local_paths: list[str],
+        *,
+        on_progress: Callable[[TransferProgress], None] | None = None,
+    ) -> None:
+        self.run_transfer(
             ["photo", "upload", *local_paths, "-c", "skip"],
-            json_out=False,
             timeout=3600,
+            on_progress=on_progress,
         )
 
     def sharing_status(self, path: str) -> dict[str, Any] | None:

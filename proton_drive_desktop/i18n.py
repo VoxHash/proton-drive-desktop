@@ -10,7 +10,7 @@ from pathlib import Path
 from .config import load as load_config
 from .paths import repo_root
 
-GETTEXT_DOMAIN = "proton-drive-linux"
+GETTEXT_DOMAIN = "proton-drive-desktop"
 LANGUAGE_SYSTEM = "system"
 LANGUAGE_ENGLISH = "en"
 SESSION_LANG = "PDL_SESSION_LANG"

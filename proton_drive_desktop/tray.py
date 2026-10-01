@@ -213,6 +213,7 @@ class StatusNotifierTray:
         on_settings: Callable[[], None],
         on_help: Callable[[], None],
         on_quit: Callable[[], None],
+        on_toggle_sync_pause: Callable[[], None] | None = None,
     ) -> None:
         self.app_id = app_id
         self.title = title
@@ -226,6 +227,7 @@ class StatusNotifierTray:
         self.on_settings = on_settings
         self.on_help = on_help
         self.on_quit = on_quit
+        self.on_toggle_sync_pause = on_toggle_sync_pause
         self.available = False
         self.started = False
         self._owner_id = 0
@@ -235,6 +237,8 @@ class StatusNotifierTray:
         self._bus_name = f"org.kde.StatusNotifierItem-{app_id}-{os.getpid()}"
         self._menu_revision = 1
         self._pixmaps = _png_to_sni_pixmap(Path(icon_png)) if icon_png else []
+        self._sync_paused = False
+        self._sync_enabled = False
         self._menu_items = {
             1: (_("Show window"), self._run_show),
             2: (_("Hide"), self._run_hide),
@@ -244,6 +248,7 @@ class StatusNotifierTray:
             8: (_("Settings"), self._run_settings),
             9: (_("Help"), self._run_help),
             11: (_("Quit"), self._run_quit),
+            12: (_("Pause sync"), self._run_toggle_pause),
         }
         self._separators = {3, 7, 10}
 
@@ -275,6 +280,26 @@ class StatusNotifierTray:
         self.available = False
         self.started = False
 
+    def set_sync_paused(self, paused: bool, *, enabled: bool | None = None) -> None:
+        """Update Pause/Resume tray label and visibility."""
+        self._sync_paused = bool(paused)
+        if enabled is not None:
+            self._sync_enabled = bool(enabled)
+        label = _("Resume sync") if self._sync_paused else _("Pause sync")
+        self._menu_items[12] = (label, self._run_toggle_pause)
+        self._menu_revision += 1
+        if self._conn is not None:
+            try:
+                self._conn.emit_signal(
+                    None,
+                    DBUSMENU_PATH,
+                    "com.canonical.dbusmenu",
+                    "LayoutUpdated",
+                    GLib.Variant("(ui)", (self._menu_revision, 0)),
+                )
+            except GLib.Error:
+                pass
+
     def _run_show(self) -> None:
         self.on_show()
 
@@ -298,6 +323,10 @@ class StatusNotifierTray:
 
     def _run_quit(self) -> None:
         self.on_quit()
+
+    def _run_toggle_pause(self) -> None:
+        if self.on_toggle_sync_pause is not None:
+            self.on_toggle_sync_pause()
 
     def _on_bus_acquired(self, connection: Gio.DBusConnection, _name: str) -> None:
         self._conn = connection
@@ -389,10 +418,13 @@ class StatusNotifierTray:
         if item_id in self._separators:
             return {"type": "separator", "visible": True}
         label, _cb = self._menu_items[item_id]
-        return {"label": label, "enabled": True, "visible": True, "type": "standard"}
+        visible = True
+        if item_id == 12:
+            visible = bool(self._sync_enabled) and self.on_toggle_sync_pause is not None
+        return {"label": label, "enabled": True, "visible": visible, "type": "standard"}
 
     def _layout_tuple(self, item_id: int) -> tuple:
-        child_ids: list[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] if item_id == 0 else []
+        child_ids: list[int] = [1, 2, 3, 4, 5, 12, 6, 7, 8, 9, 10, 11] if item_id == 0 else []
         children = []
         for child_id in child_ids:
             children.append(GLib.Variant("(ia{sv}av)", self._layout_tuple(child_id)))

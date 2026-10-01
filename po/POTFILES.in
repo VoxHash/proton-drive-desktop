@@ -1,5 +1,6 @@
 # Files with gettext _() / ngettext() strings for the GTK UI.
-proton_drive_linux/app.py
-proton_drive_linux/i18n.py
-proton_drive_linux/sync.py
-proton_drive_linux/tray.py
+proton_drive_desktop/app.py
+proton_drive_desktop/i18n.py
+proton_drive_desktop/notify.py
+proton_drive_desktop/sync.py
+proton_drive_desktop/tray.py

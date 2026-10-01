@@ -3,12 +3,12 @@ import sys
 from pathlib import Path
 
 here = Path(__file__).resolve()
-for candidate in (here.parent.parent, here.parent.parent / "lib" / "proton-drive-linux"):
-    if (candidate / "proton_drive_linux").is_dir():
+for candidate in (here.parent.parent, here.parent.parent / "lib" / "proton-drive-desktop"):
+    if (candidate / "proton_drive_desktop").is_dir():
         sys.path.insert(0, str(candidate))
         break
 
-from proton_drive_linux.app import main
+from proton_drive_desktop.app import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

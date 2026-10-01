@@ -1,18 +1,18 @@
 PREFIX ?= /usr/local
 DESTDIR ?=
 BINDIR := $(PREFIX)/bin
-LIBDIR := $(PREFIX)/lib/proton-drive-linux
+LIBDIR := $(PREFIX)/lib/proton-drive-desktop
 DATADIR := $(PREFIX)/share
-APP_ID := io.github.voxhash.ProtonDriveLinux
-GETTEXT_DOMAIN := proton-drive-linux
+APP_ID := io.github.voxhash.ProtonDriveDesktop
+GETTEXT_DOMAIN := proton-drive-desktop
 LOCALES := en ru zh_CN ar it pt es ko ja
 
-.PHONY: install user-install uninstall icons-cache pot update-po mo
+.PHONY: install user-install uninstall icons-cache pot update-po mo test-offline dist appimage
 
 install: mo
 	install -d "$(DESTDIR)$(BINDIR)" "$(DESTDIR)$(LIBDIR)"
-	install -Dm755 scripts/proton-drive-linux "$(DESTDIR)$(BINDIR)/proton-drive-linux"
-	cp -a proton_drive_linux "$(DESTDIR)$(LIBDIR)/"
+	install -Dm755 scripts/proton-drive-desktop "$(DESTDIR)$(BINDIR)/proton-drive-desktop"
+	cp -a proton_drive_desktop "$(DESTDIR)$(LIBDIR)/"
 	find "$(DESTDIR)$(LIBDIR)" -type d -name '__pycache__' -prune -exec rm -rf {} +
 	install -Dm644 data/$(APP_ID).desktop "$(DESTDIR)$(DATADIR)/applications/$(APP_ID).desktop"
 	install -Dm644 data/$(APP_ID).metainfo.xml "$(DESTDIR)$(DATADIR)/metainfo/$(APP_ID).metainfo.xml"
@@ -29,7 +29,7 @@ user-install:
 	-update-desktop-database "$(HOME)/.local/share/applications"
 
 uninstall:
-	rm -f "$(DESTDIR)$(BINDIR)/proton-drive-linux"
+	rm -f "$(DESTDIR)$(BINDIR)/proton-drive-desktop"
 	rm -rf "$(DESTDIR)$(LIBDIR)"
 	rm -f "$(DESTDIR)$(DATADIR)/applications/$(APP_ID).desktop"
 	rm -f "$(DESTDIR)$(DATADIR)/metainfo/$(APP_ID).metainfo.xml"
@@ -58,3 +58,17 @@ mo:
 		install -d locale/$$lang/LC_MESSAGES; \
 		msgfmt --check -o locale/$$lang/LC_MESSAGES/$(GETTEXT_DOMAIN).mo po/$$lang.po; \
 	done
+
+# Packaging smoke + unit tests without Proton API / signed-in CLI (used by CI).
+test-offline: mo
+	python3 scripts/run-offline-tests.py
+
+# Source tarball + SHA256SUMS under dist/ (used by .github/workflows/release.yml).
+dist:
+	chmod +x scripts/build-source-tarball.sh
+	./scripts/build-source-tarball.sh
+
+# Optional AppImage (GUI only; host still needs proton-drive on PATH). Needs appimagetool (downloaded).
+appimage:
+	chmod +x packaging/appimage/AppRun packaging/appimage/build-appimage.sh
+	./packaging/appimage/build-appimage.sh

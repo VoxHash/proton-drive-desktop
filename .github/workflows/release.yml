@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v1.12.0). Leave empty to use the current ref."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Source tarball + checksums (+ optional AppImage)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            REF="${{ github.event.inputs.tag }}"
+          else
+            REF="${GITHUB_REF_NAME}"
+          fi
+          VERSION="${REF#v}"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version=$VERSION (ref=$REF)"
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3 \
+            python3-gi \
+            gir1.2-gtk-4.0 \
+            gir1.2-adw-1 \
+            gettext \
+            libgtk-4-1 \
+            libadwaita-1-0 \
+            curl \
+            file \
+            desktop-file-utils
+
+      - name: Build source tarball + SHA-256
+        env:
+          GITHUB_REF_NAME: ${{ steps.ver.outputs.ref }}
+        run: |
+          chmod +x scripts/build-source-tarball.sh
+          ./scripts/build-source-tarball.sh "${{ steps.ver.outputs.version }}"
+          test -f "dist/proton-drive-desktop-${{ steps.ver.outputs.version }}.tar.gz"
+          test -f dist/SHA256SUMS
+          cat dist/SHA256SUMS
+
+      - name: Build AppImage (GUI only; no Proton CLI)
+        continue-on-error: true
+        id: appimage
+        env:
+          GITHUB_REF_NAME: ${{ steps.ver.outputs.ref }}
+        run: |
+          chmod +x packaging/appimage/AppRun packaging/appimage/build-appimage.sh
+          ./packaging/appimage/build-appimage.sh "${{ steps.ver.outputs.version }}"
+          # Guard: never publish an AppImage that embedded proton-drive
+          if find dist/appimage-build/AppDir -type f -name 'proton-drive' 2>/dev/null | grep -q .; then
+            echo "Refusing release: AppDir contains proton-drive" >&2
+            exit 1
+          fi
+          ls -la dist/*.AppImage
+          cat dist/SHA256SUMS
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.ver.outputs.version }}"
+          TAG="${{ steps.ver.outputs.ref }}"
+          NOTES="$(mktemp)"
+          cat > "$NOTES" <<EOF
+          ## Proton Drive Desktop ${VERSION}
+
+          Unofficial GTK4 GUI for Proton's official Drive CLI. Not affiliated with Proton AG.
+
+          ### Assets
+          - **Source tarball** \`proton-drive-desktop-${VERSION}.tar.gz\` with \`SHA256SUMS\`
+          - **Optional AppImage** (when the build succeeded): GUI only — still requires a system \`proton-drive\` on PATH. This project never vendors Proton's prebuilt CLI.
+
+          ### Install from source
+          \`\`\`bash
+          tar -xzf proton-drive-desktop-${VERSION}.tar.gz
+          cd proton-drive-desktop-${VERSION}
+          ./install.sh
+          \`\`\`
+
+          Or verify checksums first:
+          \`\`\`bash
+          sha256sum -c SHA256SUMS
+          \`\`\`
+
+          Official CLI downloads and SHA-512 values: https://proton.me/download/drive/cli/index.html
+          EOF
+          # Trim leading spaces from heredoc indent
+          sed -i 's/^          //' "$NOTES"
+
+          ASSETS=(
+            "dist/proton-drive-desktop-${VERSION}.tar.gz"
+            "dist/SHA256SUMS"
+          )
+          shopt -s nullglob
+          for img in dist/ProtonDriveDesktop-*.AppImage; do
+            ASSETS+=("$img")
+          done
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+          else
+            gh release create "$TAG" "${ASSETS[@]}" \
+              --title "Proton Drive Desktop ${VERSION}" \
+              --notes-file "$NOTES"
+          fi

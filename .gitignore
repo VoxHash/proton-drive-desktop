@@ -8,3 +8,12 @@ build/
 *.log
 locale/
 *.mo
+
+# Local agent / IDE markers (not part of the release)
+.cursor-agents-*
+.cursor/
+
+# AppImage / release tooling downloaded under dist/ (also covered by dist/)
+dist/.tools/
+dist/appimage-build/
+*.AppImage

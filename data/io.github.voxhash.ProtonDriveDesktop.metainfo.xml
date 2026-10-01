@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.voxhash.ProtonDriveLinux</id>
-  <name>Proton Drive Linux</name>
+  <id>io.github.voxhash.ProtonDriveDesktop</id>
+  <name>Proton Drive Desktop</name>
   <summary>Unofficial GTK4 GUI for Proton’s official Drive CLI</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT AND GPL-3.0-or-later</project_license>
   <developer id="dev.voxhash">
     <name>VoxHash Technologies</name>
   </developer>
-  <launchable type="desktop-id">io.github.voxhash.ProtonDriveLinux.desktop</launchable>
-  <url type="homepage">https://github.com/VoxHash/proton-drive-linux</url>
-  <url type="bugtracker">https://github.com/VoxHash/proton-drive-linux/issues</url>
+  <launchable type="desktop-id">io.github.voxhash.ProtonDriveDesktop.desktop</launchable>
+  <url type="homepage">https://github.com/VoxHash/proton-drive-desktop</url>
+  <url type="bugtracker">https://github.com/VoxHash/proton-drive-desktop/issues</url>
   <url type="help">https://proton.me/support/drive</url>
   <description>
     <p>Proton has no official Linux Drive GUI. This unofficial GTK4 / libadwaita app wraps Proton’s official proton-drive CLI so you can browse My files, Photos, Shared with me, and Trash with the same keyring session as the CLI.</p>
     <p>It is not affiliated with Proton AG. The Drive product icon is Proton AG artwork from the official Android app (GPL-3.0-or-later).</p>
   </description>
   <provides>
-    <binary>proton-drive-linux</binary>
+    <binary>proton-drive-desktop</binary>
   </provides>
   <recommends>
     <control>keyboard</control>
@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.13.0" date="2026-09-30">
+      <description>
+        <p>Rename to proton-drive-desktop. Multi-folder sync pairs, pause/resume, Guided setup, Activity history. Desktop UX parity (DnD, transfer queue, search, breadcrumbs, grid, multi-select, Properties, window memory, notifications). Sync quality (excludes, selective root, preview, direction, systemd timer/path, delta, retry, timeout, seed). GitHub Releases, install.sh, optional AppImage. CLI SHA-512 verify and threat-model docs.</p>
+      </description>
+    </release>
     <release version="1.12.0" date="2026-09-28">
       <description>
         <p>Complete UI translations for Russian, Simplified Chinese, Arabic, Italian, Portuguese, Spanish, Korean, and Japanese. Settings language lists each in its native name, persists in gui.json, and restarts the app. Arabic uses a right-to-left GTK layout. Portuguese ships as gettext locale pt.</p>

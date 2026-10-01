@@ -15,6 +15,7 @@ Files used (main branch at fetch):
   app/src/main/res/mipmap-{mdpi,xhdpi,xxxhdpi}/ic_launcher.png
   Repository HEAD at fetch: d1c81cd2eab6c2d0715ad92c86428a4ef50b1825
 
-Installed as: io.github.voxhash.ProtonDriveLinux
-  data/icons/hicolor/scalable/apps/io.github.voxhash.ProtonDriveLinux.svg
-  data/icons/hicolor/<size>/apps/io.github.voxhash.ProtonDriveLinux.png
+Installed as: io.github.voxhash.ProtonDriveDesktop
+  data/icons/hicolor/scalable/apps/io.github.voxhash.ProtonDriveDesktop.svg
+  data/icons/hicolor/<size>/apps/io.github.voxhash.ProtonDriveDesktop.png
+(Previous AppStream/desktop ID was io.github.voxhash.ProtonDriveLinux.)
