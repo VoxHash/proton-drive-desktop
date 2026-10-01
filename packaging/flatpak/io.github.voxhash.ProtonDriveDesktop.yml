@@ -1,0 +1,37 @@
+# Sketch only — NOT submitted to Flathub.
+# Verdict: Flathub does not require AUR, but this app is host-dependent
+# (needs official proton-drive on the host). Flathub rejects host-dependent
+# core functionality and thin wrappers around other tools by default.
+# Do not vendor Proton's prebuilt CLI via extra-data without Flathub review.
+#
+# If pursuing a case-by-case exception later:
+# - Build GUI from source against org.gnome.Platform
+# - Document that proton-drive must be installed on the host (never bundled)
+# - Prefer portals over filesystem=host; sync folders via FileChooser
+# - Expect review pushback until Proton ships a redistributable Linux CLI story
+#
+app-id: io.github.voxhash.ProtonDriveDesktop
+runtime: org.gnome.Platform
+runtime-version: '47'
+sdk: org.gnome.Sdk
+command: proton-drive-desktop
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --talk-name=org.freedesktop.secrets
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  # Host CLI access is the Flathub blocker — listed for honesty, not as a green light.
+  - --filesystem=xdg-download
+  - --filesystem=home
+modules:
+  - name: proton-drive-desktop
+    buildsystem: simple
+    build-commands:
+      - make PREFIX=/app install
+    sources:
+      - type: git
+        url: https://github.com/VoxHash/proton-drive-desktop.git
+        tag: v1.13.0
