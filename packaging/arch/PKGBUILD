@@ -1,6 +1,6 @@
 # Maintainer: VoxHash <15043788+VoxHash@users.noreply.github.com>
 pkgname=proton-drive-desktop
-pkgver=1.13.1
+pkgver=1.14.0
 pkgrel=1
 pkgdesc='Unofficial GTK4 GUI for the official Proton Drive CLI'
 arch=(any)

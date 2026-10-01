@@ -36,6 +36,7 @@
 - [x] GitHub Releases with source tarball + SHA-256 checksums (parity with `pdrive-desktop` / AppImage-capable rivals)
 - [x] Optional AppImage build that still requires a system `proton-drive` on PATH (do not vendor Proton binaries)
 - [x] One-shot `install.sh`: system GTK deps, desktop launcher, optional CLI download only after verifying Proton’s published SHA-512 (see `protondrive-gui` / `pdrive-desktop`)
+- [x] Debian/Ubuntu `.deb` (`make deb` / Release asset): GUI only; Depends on distro GTK/PyGObject; never vendors `proton-drive` CLI
 - [ ] Publish the existing Arch PKGBUILD to the AUR (do not bundle Proton’s prebuilt CLI)
 - [ ] Flathub listing (CLI must stay an extra runtime the user installs; do not redistribute proton.me binaries)
 

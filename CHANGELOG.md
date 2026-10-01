@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.0] — 2026-10-01
+
+### Added
+
+- Debian/Ubuntu `.deb` packaging (`packaging/debian/`, `make deb`): GUI only (Python, data, desktop/metainfo/icons/locales); Depends on GTK4 / libadwaita / python3-gi packages; does **not** ship `proton-drive` CLI
+- GitHub Release workflow optionally attaches `proton-drive-desktop_<version>_all.deb` and its SHA-256 in `SHA256SUMS` (same optional pattern as AppImage)
+- Installation docs cover `.deb` install (`dpkg -i`) and remove (`dpkg -r`); `install.sh` apt user-install path unchanged
+
 ## [1.13.1] — 2026-09-30
 
 ### Added
@@ -126,6 +134,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First GTK4 GUI for Proton's official Drive CLI on Linux
 - Live account listing, upload/download, trash, new folder
 
+[1.14.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.14.0
+[1.13.1]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.13.1
 [1.13.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.13.0
 [1.12.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.12.0
 [1.11.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.11.0

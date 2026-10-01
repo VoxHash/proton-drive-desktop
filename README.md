@@ -84,11 +84,15 @@ After install, the applications menu shows **Proton Drive** (`io.github.voxhash.
 
 From a checkout without `make`: `python3 scripts/proton-drive-desktop`.
 
-### GitHub Releases and AppImage
+### GitHub Releases, AppImage, and Debian `.deb`
 
 Tagged releases (`v*`) publish a source tarball and `SHA256SUMS` via `.github/workflows/release.yml`. Verify with `sha256sum -c SHA256SUMS`.
 
 Optional AppImage (`make appimage` or the release asset when the CI AppImage step succeeds) bundles **this GUI only**. It still needs host `python3` / PyGObject / GTK4 / libadwaita and a system `proton-drive` on `PATH`. Proton’s CLI is never vendored inside the AppImage. Building locally downloads `appimagetool` into `dist/.tools/` when missing.
+
+Optional Debian/Ubuntu package (`make deb` or the release `.deb` when that CI step succeeds) installs the same GUI system-wide via `dpkg`. It Depends on distro GTK/PyGObject packages and still requires a separate `proton-drive` on `PATH`. Remove with `sudo dpkg -r proton-drive-desktop`. Details: [docs/installation.md](docs/installation.md#debian--ubuntu-deb).
+
+On Debian/Ubuntu you can also keep using `./install.sh` (apt GTK deps + `make user-install` under `~/.local`) without installing the `.deb`.
 
 ### How this compares to Proton Pass and Proton VPN on this OS
 
@@ -96,7 +100,7 @@ Optional AppImage (`make appimage` or the release asset when the CI AppImage ste
 | --- | --- | --- |
 | Proton Pass | Flatpak `me.proton.Pass` from Flathub | One command / Discover |
 | Proton VPN | Native `proton-vpn-gtk-app` from Arch extra | `pacman -S proton-vpn-gtk-app` |
-| Proton Drive | No official Linux GUI. This wrapper + official CLI | `./install.sh` or `make user-install` after CLI is on PATH |
+| Proton Drive | No official Linux GUI. This wrapper + official CLI | `./install.sh`, `.deb`, or `make user-install` after CLI is on PATH |
 
 Remaining blockers vs Pass/VPN: no Flathub listing, no signed Arch extra package, the GUI is unsigned Python, and the official CLI must stay a separate install (do not redistribute Proton’s prebuilt CLI in this repo). A real AUR PKGBUILD lives in `packaging/arch/PKGBUILD` and depends on the CLI as an optional AUR package.
 

@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.14.0" date="2026-10-01">
+      <description>
+        <p>Debian/Ubuntu .deb package for the GTK GUI only (make deb / GitHub Release asset). Still requires a system proton-drive CLI on PATH; does not vendor Proton binaries. Uninstall with dpkg -r proton-drive-desktop.</p>
+      </description>
+    </release>
     <release version="1.13.1" date="2026-09-30">
       <description>
         <p>Fix Guided setup crash: Adw.MessageDialog.present() must not pass a parent window. make user-install rewrites desktop Exec/TryExec for menu visibility. Uninstall via make user-uninstall / install.sh --uninstall.</p>

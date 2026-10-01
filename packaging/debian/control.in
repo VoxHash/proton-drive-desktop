@@ -1,0 +1,29 @@
+Package: proton-drive-desktop
+Version: @VERSION@
+Section: net
+Priority: optional
+Architecture: all
+Maintainer: VoxHash <15043788+VoxHash@users.noreply.github.com>
+Homepage: https://github.com/VoxHash/proton-drive-desktop
+Depends: python3 (>= 3.10),
+         python3-gi,
+         gir1.2-gtk-4.0,
+         gir1.2-adw-1,
+         libgtk-4-1,
+         libadwaita-1-0,
+         libgdk-pixbuf-2.0-0,
+         libsecret-1-0,
+         hicolor-icon-theme
+Recommends: python3-gi-cairo
+Installed-Size: @INSTALLED_SIZE@
+Description: Unofficial GTK4 GUI for Proton's official Drive CLI
+ Proton Drive Desktop is an unofficial GTK4 / libadwaita desktop GUI for
+ Proton's official proton-drive CLI. It browses My files, Photos, Shared
+ with me, and Trash using the CLI session already signed in on the system.
+ .
+ This package installs the GUI only (Python, data, desktop entry, AppStream
+ metainfo, icons, and gettext catalogs). It does not ship the proton-drive
+ CLI binary. Install the official CLI separately and ensure it is on PATH
+ (see https://proton.me/download/drive/cli/index.html).
+ .
+ Not affiliated with Proton AG.

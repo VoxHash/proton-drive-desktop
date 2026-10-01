@@ -99,7 +99,9 @@ def test_distribution_kit() -> None:
     assert "TryExec" in makefile
     assert "\ndist:" in makefile or makefile.startswith("dist:") or "\ndist:\n" in makefile
     assert "appimage:" in makefile
+    assert "deb:" in makefile
     assert "build-source-tarball.sh" in makefile
+    assert "build-deb.sh" in makefile
 
     tarball_sh = ROOT / "scripts" / "build-source-tarball.sh"
     assert tarball_sh.is_file(), tarball_sh
@@ -115,16 +117,124 @@ def test_distribution_kit() -> None:
     assert apprun.is_file(), apprun
     assert "proton-drive-desktop" in apprun.read_text(encoding="utf-8")
 
+    deb_sh = ROOT / "packaging" / "debian" / "build-deb.sh"
+    assert deb_sh.is_file(), deb_sh
+    deb_text = deb_sh.read_text(encoding="utf-8")
+    assert "Refusing to package" in deb_text
+    assert "SHA256SUMS" in deb_text
+    assert "dpkg -r" in deb_text
+
+    control_in = ROOT / "packaging" / "debian" / "control.in"
+    assert control_in.is_file(), control_in
+    control_text = control_in.read_text(encoding="utf-8")
+    assert "Package: proton-drive-desktop" in control_text
+    assert "Architecture: all" in control_text
+    assert "python3-gi" in control_text
+    assert "gir1.2-gtk-4.0" in control_text
+    assert "gir1.2-adw-1" in control_text
+    assert "does not ship the proton-drive" in control_text
+    assert "@VERSION@" in control_text
+
+    copyright_f = ROOT / "packaging" / "debian" / "copyright"
+    assert copyright_f.is_file(), copyright_f
+    copyright_text = copyright_f.read_text(encoding="utf-8")
+    assert "MIT" in copyright_text
+    assert "GPL-3.0-or-later" in copyright_text
+
     release_yml = ROOT / ".github" / "workflows" / "release.yml"
     assert release_yml.is_file(), release_yml
     release_text = release_yml.read_text(encoding="utf-8")
     assert "build-source-tarball.sh" in release_text
     assert "SHA256SUMS" in release_text
+    assert "build-deb.sh" in release_text
+    assert "proton-drive-desktop_*_all.deb" in release_text
     assert 'tags:' in release_text or '"v*"' in release_text
+
+
+def test_deb_control_and_smoke_build() -> None:
+    """Validate Debian control template and smoke-build a .deb when tooling exists."""
+    import os
+    import shutil
+    import subprocess
+    import tempfile
+
+    control_in = (ROOT / "packaging" / "debian" / "control.in").read_text(encoding="utf-8")
+    assert "Package: proton-drive-desktop" in control_in
+    assert "Architecture: all" in control_in
+    for dep in (
+        "python3",
+        "python3-gi",
+        "gir1.2-gtk-4.0",
+        "gir1.2-adw-1",
+        "libgtk-4-1",
+        "libadwaita-1-0",
+        "libsecret-1-0",
+        "hicolor-icon-theme",
+    ):
+        assert dep in control_in, dep
+    # Must not declare a Depends on a Proton CLI binary package we do not ship.
+    assert "proton-drive-cli" not in control_in
+    assert "Depends:" in control_in and "proton-drive," not in control_in.replace("proton-drive-desktop", "")
+
+    build_sh = ROOT / "packaging" / "debian" / "build-deb.sh"
+    assert os.access(build_sh, os.X_OK) or build_sh.is_file()
+
+    # Offline smoke: build when ar/tar/gzip/make/msgfmt are present (no dpkg-deb required).
+    for tool in ("ar", "tar", "gzip", "make", "msgfmt", "md5sum", "sha256sum"):
+        if shutil.which(tool) is None:
+            print(f"skip deb smoke build: missing {tool}")
+            return
+
+    with tempfile.TemporaryDirectory(prefix="pdd-deb-") as tmp:
+        env = os.environ.copy()
+        env["DIST_DIR"] = tmp
+        env["DEB_BUILD_DIR"] = str(Path(tmp) / "deb-build")
+        proc = subprocess.run(
+            ["bash", str(build_sh), "1.14.0"],
+            cwd=str(ROOT),
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode != 0:
+            raise AssertionError(
+                f"make deb / build-deb.sh failed ({proc.returncode}):\n"
+                f"{proc.stdout}\n{proc.stderr}"
+            )
+        deb_path = Path(tmp) / "proton-drive-desktop_1.14.0_all.deb"
+        assert deb_path.is_file(), deb_path
+        listing = subprocess.check_output(["ar", "t", str(deb_path)], text=True)
+        assert "debian-binary" in listing
+        assert "control.tar.gz" in listing or "control.tar.xz" in listing
+        assert "data.tar.gz" in listing or "data.tar.xz" in listing
+        sums = (Path(tmp) / "SHA256SUMS").read_text(encoding="utf-8")
+        assert "proton-drive-desktop_1.14.0_all.deb" in sums
+        # Extract control and confirm key fields + no CLI binary in data
+        extract_dir = Path(tmp) / "extract"
+        extract_dir.mkdir()
+        subprocess.check_call(["ar", "x", str(deb_path)], cwd=str(extract_dir))
+        control_member = next(extract_dir.glob("control.tar.*"))
+        data_member = next(extract_dir.glob("data.tar.*"))
+        control_dir = extract_dir / "control"
+        data_dir = extract_dir / "data"
+        control_dir.mkdir()
+        data_dir.mkdir()
+        subprocess.check_call(["tar", "-xf", str(control_member), "-C", str(control_dir)])
+        subprocess.check_call(["tar", "-xf", str(data_member), "-C", str(data_dir)])
+        control = (control_dir / "control").read_text(encoding="utf-8")
+        assert "Package: proton-drive-desktop" in control
+        assert "Version: 1.14.0" in control
+        assert "Architecture: all" in control
+        assert "python3-gi" in control
+        assert (data_dir / "usr" / "bin" / "proton-drive-desktop").is_file()
+        assert not (data_dir / "usr" / "bin" / "proton-drive").exists()
+        assert list(data_dir.rglob("proton-drive")) == []
 
 
 if __name__ == "__main__":
     test_config_roundtrip()
     test_official_icon_installed()
     test_distribution_kit()
+    test_deb_control_and_smoke_build()
     print("packaging checks passed")

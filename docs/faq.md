@@ -16,7 +16,7 @@
 
 **Where is my storage quota in Settings?** Unavailable for now. Live official CLI 0.8.0 `--help` has no `quota`, `storage`, `usage`, or `account` command (only `auth`, `filesystem`, `sharing`, `invitation`, `album`, `photo`). Settings → **Storage quota** probes that help text and shows Unavailable — this app never invents used/total numbers. When Proton adds a public CLI command, the watch item in [ROADMAP.md](../ROADMAP.md) can grow a real UI.
 
-**Can I install it like Proton Pass or Proton VPN?** Pass is Flathub (`me.proton.Pass`). VPN is Arch extra (`pacman -S proton-vpn-gtk-app`). This app uses `./install.sh` or `make user-install` and a separate official CLI on PATH (GitHub Releases ship a source tarball + SHA256SUMS; optional AppImage still needs host GTK and `proton-drive`). There is no Flathub listing yet.
+**Can I install it like Proton Pass or Proton VPN?** Pass is Flathub (`me.proton.Pass`). VPN is Arch extra (`pacman -S proton-vpn-gtk-app`). This app uses `./install.sh`, `make user-install`, or an optional Debian/Ubuntu `.deb` from GitHub Releases, plus a separate official CLI on PATH (source tarball + SHA256SUMS; optional AppImage / `.deb` still need host GTK and `proton-drive`). There is no Flathub listing yet.
 
 **How do I set up multiple always-on folders?** Settings → Always-on → Sync pairs (add/edit/remove). Each pair is a local directory ↔ a `/my-files/...` remote root. Guided setup on first launch covers checksum, preview, seed, and enable. Pause sync from Settings or the tray without turning always-on off. Activity (recent passes) is in the same Settings group. Step-by-step: [examples/example-02.md](examples/example-02.md).
 

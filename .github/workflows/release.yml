@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    name: Source tarball + checksums (+ optional AppImage)
+    name: Source tarball + checksums (+ optional AppImage / .deb)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,7 +50,9 @@ jobs:
             libadwaita-1-0 \
             curl \
             file \
-            desktop-file-utils
+            desktop-file-utils \
+            dpkg-dev \
+            binutils
 
       - name: Build source tarball + SHA-256
         env:
@@ -78,6 +80,22 @@ jobs:
           ls -la dist/*.AppImage
           cat dist/SHA256SUMS
 
+      - name: Build Debian package (GUI only; no Proton CLI)
+        continue-on-error: true
+        id: deb
+        env:
+          GITHUB_REF_NAME: ${{ steps.ver.outputs.ref }}
+        run: |
+          chmod +x packaging/debian/build-deb.sh
+          ./packaging/debian/build-deb.sh "${{ steps.ver.outputs.version }}"
+          # Guard: never publish a .deb that embedded proton-drive
+          if find dist/deb-build -type f -name 'proton-drive' 2>/dev/null | grep -q .; then
+            echo "Refusing release: deb staging contains proton-drive" >&2
+            exit 1
+          fi
+          ls -la dist/*.deb
+          cat dist/SHA256SUMS
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,6 +112,7 @@ jobs:
           ### Assets
           - **Source tarball** \`proton-drive-desktop-${VERSION}.tar.gz\` with \`SHA256SUMS\`
           - **Optional AppImage** (when the build succeeded): GUI only — still requires a system \`proton-drive\` on PATH. This project never vendors Proton's prebuilt CLI.
+          - **Optional Debian/Ubuntu .deb** (when the build succeeded): GUI only — \`sudo dpkg -i proton-drive-desktop_${VERSION}_all.deb\`; install official CLI separately. Remove with \`sudo dpkg -r proton-drive-desktop\`.
 
           ### Install from source
           \`\`\`bash
@@ -119,6 +138,9 @@ jobs:
           shopt -s nullglob
           for img in dist/ProtonDriveDesktop-*.AppImage; do
             ASSETS+=("$img")
+          done
+          for deb in dist/proton-drive-desktop_*_all.deb; do
+            ASSETS+=("$deb")
           done
 
           if gh release view "$TAG" >/dev/null 2>&1; then

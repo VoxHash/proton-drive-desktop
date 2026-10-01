@@ -7,7 +7,7 @@ APP_ID := io.github.voxhash.ProtonDriveDesktop
 GETTEXT_DOMAIN := proton-drive-desktop
 LOCALES := en ru zh_CN ar it pt es ko ja
 
-.PHONY: install user-install uninstall user-uninstall icons-cache pot update-po mo test-offline dist appimage
+.PHONY: install user-install uninstall user-uninstall icons-cache pot update-po mo test-offline dist appimage deb
 
 install: mo
 	install -d "$(DESTDIR)$(BINDIR)" "$(DESTDIR)$(LIBDIR)"
@@ -89,3 +89,8 @@ dist:
 appimage:
 	chmod +x packaging/appimage/AppRun packaging/appimage/build-appimage.sh
 	./packaging/appimage/build-appimage.sh
+
+# Optional Debian/Ubuntu .deb (GUI only; host still needs proton-drive on PATH). Needs tar/gzip/ar; uses dpkg-deb when present.
+deb:
+	chmod +x packaging/debian/build-deb.sh
+	./packaging/debian/build-deb.sh
