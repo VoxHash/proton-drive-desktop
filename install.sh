@@ -12,8 +12,12 @@
 #   ./install.sh --skip-cli   # deps + GUI only
 #   ./install.sh --with-cli   # deps + GUI; download CLI even if present (re-verify)
 #   ./install.sh --yes        # non-interactive (assume yes for sudo package installs)
+#   ./install.sh --uninstall  # remove GUI user-install (see scripts/uninstall.sh)
+#   ./install.sh --uninstall --purge         # also delete ~/.config/proton-drive-desktop
+#   ./install.sh --uninstall --remove-cli    # also delete ~/.local/bin/proton-drive
 #
 # Never silently installs a CLI that fails checksum verification.
+# Uninstall never removes the official CLI unless --remove-cli is passed.
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,6 +26,8 @@ CLI_INDEX_URL="https://proton.me/download/drive/cli/index.html"
 SKIP_CLI=0
 FORCE_CLI=0
 ASSUME_YES=0
+DO_UNINSTALL=0
+UNINSTALL_ARGS=()
 
 c_bold=$'\033[1m'; c_green=$'\033[32m'; c_yellow=$'\033[33m'; c_red=$'\033[31m'; c_reset=$'\033[0m'
 say() { echo "${c_bold}==>${c_reset} $*"; }
@@ -30,7 +36,7 @@ warn() { echo "${c_yellow}!${c_reset} $*"; }
 die() { echo "${c_red}error: $*${c_reset}" >&2; exit 1; }
 
 usage() {
-  sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 }
 
@@ -39,11 +45,21 @@ while [ $# -gt 0 ]; do
     --skip-cli) SKIP_CLI=1 ;;
     --with-cli) FORCE_CLI=1 ;;
     --yes|-y) ASSUME_YES=1 ;;
+    --uninstall) DO_UNINSTALL=1 ;;
+    --purge|--remove-cli) UNINSTALL_ARGS+=("$1") ;;
     -h|--help) usage ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
   shift
 done
+
+if [ "$DO_UNINSTALL" -eq 1 ]; then
+  chmod +x "$PROJECT_DIR/scripts/uninstall.sh"
+  exec "$PROJECT_DIR/scripts/uninstall.sh" "${UNINSTALL_ARGS[@]}"
+fi
+if [ "${#UNINSTALL_ARGS[@]}" -gt 0 ]; then
+  die "--purge and --remove-cli only apply with --uninstall"
+fi
 
 # -- 1. system packages -------------------------------------------------------
 

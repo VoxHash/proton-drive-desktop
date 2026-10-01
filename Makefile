@@ -7,7 +7,7 @@ APP_ID := io.github.voxhash.ProtonDriveDesktop
 GETTEXT_DOMAIN := proton-drive-desktop
 LOCALES := en ru zh_CN ar it pt es ko ja
 
-.PHONY: install user-install uninstall icons-cache pot update-po mo test-offline dist appimage
+.PHONY: install user-install uninstall user-uninstall icons-cache pot update-po mo test-offline dist appimage
 
 install: mo
 	install -d "$(DESTDIR)$(BINDIR)" "$(DESTDIR)$(LIBDIR)"
@@ -24,9 +24,18 @@ install: mo
 	done
 	-$(MAKE) icons-cache DESTDIR="$(DESTDIR)" PREFIX="$(PREFIX)"
 
+# Rewrite Exec/TryExec to an absolute path so application menus still find the
+# binary when the desktop environment's TryExec PATH omits ~/.local/bin.
 user-install:
 	$(MAKE) install PREFIX="$(HOME)/.local"
+	@desktop="$(HOME)/.local/share/applications/$(APP_ID).desktop"; \
+	bin="$(HOME)/.local/bin/proton-drive-desktop"; \
+	sed -i \
+		-e "s|^Exec=.*|Exec=$$bin|" \
+		-e "s|^TryExec=.*|TryExec=$$bin|" \
+		"$$desktop"
 	-update-desktop-database "$(HOME)/.local/share/applications"
+	-$(MAKE) icons-cache DESTDIR= PREFIX="$(HOME)/.local"
 
 uninstall:
 	rm -f "$(DESTDIR)$(BINDIR)/proton-drive-desktop"
@@ -38,6 +47,14 @@ uninstall:
 	@for lang in $(LOCALES); do \
 		rm -f "$(DESTDIR)$(DATADIR)/locale/$$lang/LC_MESSAGES/$(GETTEXT_DOMAIN).mo"; \
 	done
+
+# Removes user-install payload under ~/.local, XDG autostart, and optional
+# systemd --user sync units. Does not delete ~/.config/proton-drive-desktop or
+# the official CLI (~/.local/bin/proton-drive). Use scripts/uninstall.sh --purge
+# / --remove-cli for those.
+user-uninstall:
+	chmod +x scripts/uninstall.sh
+	./scripts/uninstall.sh
 
 icons-cache:
 	-gtk-update-icon-cache -f -t "$(DESTDIR)$(DATADIR)/icons/hicolor"

@@ -48,9 +48,12 @@ From a git checkout or a [GitHub Release](https://github.com/VoxHash/proton-driv
 ./install.sh            # GTK deps + make user-install; download CLI if missing (SHA-512 verified)
 ./install.sh --skip-cli # GUI only
 ./install.sh --with-cli # re-download CLI and verify against Proton’s published SHA-512
+./install.sh --uninstall              # remove GUI user-install (keeps CLI + config)
+./install.sh --uninstall --purge      # also delete ~/.config/proton-drive-desktop
+./install.sh --uninstall --remove-cli # also delete ~/.local/bin/proton-drive
 ```
 
-CLI downloads use Proton’s index at [proton.me/download/drive/cli](https://proton.me/download/drive/cli/index.html). A checksum mismatch aborts; the script never installs a bad binary.
+CLI downloads use Proton’s index at [proton.me/download/drive/cli](https://proton.me/download/drive/cli/index.html). A checksum mismatch aborts; the script never installs a bad binary. Uninstall defaults leave the official CLI and GUI config alone; see [docs/installation.md](docs/installation.md#uninstall).
 
 ### Manual
 
@@ -76,6 +79,8 @@ cd ~/Projects/proton-drive-desktop
 make user-install
 proton-drive-desktop
 ```
+
+After install, the applications menu shows **Proton Drive** (`io.github.voxhash.ProtonDriveDesktop.desktop` under `~/.local/share/applications/`). Uninstall with `make user-uninstall` or `./install.sh --uninstall` (optional `--purge` / `--remove-cli`; see [docs/installation.md](docs/installation.md#uninstall)).
 
 From a checkout without `make`: `python3 scripts/proton-drive-desktop`.
 

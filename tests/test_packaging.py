@@ -43,11 +43,16 @@ def test_official_icon_installed() -> None:
     desktop = (ROOT / "data" / f"{APP_ICON_NAME}.desktop").read_text(encoding="utf-8")
     assert f"Icon={APP_ICON_NAME}" in desktop
     assert "folder-remote" not in desktop
+    assert "Name=Proton Drive" in desktop
+    assert "Categories=Network;FileTransfer;GTK;" in desktop
+    assert "StartupWMClass=io.github.voxhash.ProtonDriveDesktop" in desktop
+    assert "Exec=proton-drive-desktop" in desktop
     metainfo = (ROOT / "data" / f"{APP_ICON_NAME}.metainfo.xml").read_text(encoding="utf-8")
     assert APP_ICON_NAME in metainfo
     assert HELP_URL in metainfo
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     assert "user-install" in makefile
+    assert "user-uninstall" in makefile
     assert "msgfmt" in makefile
     assert "LOCALES := en ru zh_CN ar it pt es ko ja" in makefile
     assert "locale/$$lang/LC_MESSAGES" in makefile
@@ -73,6 +78,28 @@ def test_distribution_kit() -> None:
     assert "proton.me/download/drive/cli/index.html" in install_text
     assert "sha512" in install_text.lower()
     assert "--skip-cli" in install_text
+    assert "--uninstall" in install_text
+    assert "scripts/uninstall.sh" in install_text
+
+    uninstall_sh = ROOT / "scripts" / "uninstall.sh"
+    assert uninstall_sh.is_file(), uninstall_sh
+    uninstall_text = uninstall_sh.read_text(encoding="utf-8")
+    assert "--purge" in uninstall_text
+    assert "--remove-cli" in uninstall_text
+    assert "proton-drive-desktop" in uninstall_text
+    assert "io.github.voxhash.ProtonDriveDesktop" in uninstall_text
+    # Default must not wipe the official CLI or GUI config without flags.
+    assert 'REMOVE_CLI=0' in uninstall_text or "REMOVE_CLI=0" in uninstall_text
+    assert "PURGE=0" in uninstall_text
+    assert "Leaving" in uninstall_text and "proton-drive" in uninstall_text
+
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "user-uninstall" in makefile
+    assert "scripts/uninstall.sh" in makefile
+    assert "TryExec" in makefile
+    assert "\ndist:" in makefile or makefile.startswith("dist:") or "\ndist:\n" in makefile
+    assert "appimage:" in makefile
+    assert "build-source-tarball.sh" in makefile
 
     tarball_sh = ROOT / "scripts" / "build-source-tarball.sh"
     assert tarball_sh.is_file(), tarball_sh
@@ -94,11 +121,6 @@ def test_distribution_kit() -> None:
     assert "build-source-tarball.sh" in release_text
     assert "SHA256SUMS" in release_text
     assert 'tags:' in release_text or '"v*"' in release_text
-
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-    assert "\ndist:" in makefile or makefile.startswith("dist:") or "\ndist:\n" in makefile
-    assert "appimage:" in makefile
-    assert "build-source-tarball.sh" in makefile
 
 
 if __name__ == "__main__":

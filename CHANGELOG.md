@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `make user-uninstall`, `scripts/uninstall.sh`, and `./install.sh --uninstall` remove the user-install payload under `~/.local` (binary, lib tree, desktop entry, AppStream metainfo, hicolor icons, locale `.mo` files), plus XDG autostart and optional systemd user sync units when present
+- Uninstall flags `--purge` (delete `~/.config/proton-drive-desktop`) and `--remove-cli` (delete `~/.local/bin/proton-drive`); defaults leave both alone
+- Installation docs cover uninstall and applications-menu paths (`Name=Proton Drive`, `io.github.voxhash.ProtonDriveDesktop`)
+
+### Fixed
+
+- `make user-install` rewrites the installed `.desktop` `Exec=` / `TryExec=` to the absolute `~/.local/bin/proton-drive-desktop` path and refreshes the icon cache so desktop menus that check `TryExec` without `~/.local/bin` on `PATH` still show **Proton Drive**
+
 ## [1.13.0] — 2026-09-30
 
 ### Changed

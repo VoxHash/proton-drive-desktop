@@ -16,6 +16,10 @@
 
 **Tray still shows a folder icon** — install icons with `make user-install`, then restart this GUI (`python3 scripts/proton-drive-desktop`). KDE reads `io.github.voxhash.ProtonDriveDesktop` from hicolor plus the StatusNotifierItem pixmap.
 
+**Not in the applications menu** — run `make user-install` again (installs `~/.local/share/applications/io.github.voxhash.ProtonDriveDesktop.desktop` with absolute `Exec=` / `TryExec=`, then `update-desktop-database`). Log out/in or reopen the menu if the launcher was already cached. Search for **Proton Drive**.
+
+**How do I uninstall?** — `make user-uninstall` or `./install.sh --uninstall`. Add `--purge` to delete `~/.config/proton-drive-desktop`; add `--remove-cli` only if you also want `~/.local/bin/proton-drive` removed. Details: [installation.md](installation.md#uninstall).
+
 **Language did not change** — Settings → Language writes `language` in `~/.config/proton-drive-desktop/gui.json` and restarts this Gio process. Catalogs ship for `en`, `ru`, `zh_CN`, `ar`, `it`, `pt`, `es`, `ko`, and `ja`. System default follows the OS locale and falls back to English if that locale has no catalog. Arabic should flip GTK to RTL. Desktop and AppStream stay English.
 
 **Help does not open** — confirm https://proton.me/support/drive in a browser; the app uses `xdg-open` / GTK URI launcher.

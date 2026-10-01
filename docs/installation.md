@@ -50,6 +50,19 @@ make user-install
 proton-drive-desktop
 ```
 
+`make user-install` places:
+
+| Path | What |
+| --- | --- |
+| `~/.local/bin/proton-drive-desktop` | Launcher script |
+| `~/.local/lib/proton-drive-desktop/` | Python package |
+| `~/.local/share/applications/io.github.voxhash.ProtonDriveDesktop.desktop` | Applications menu entry (`Name=Proton Drive`) |
+| `~/.local/share/metainfo/io.github.voxhash.ProtonDriveDesktop.metainfo.xml` | AppStream metainfo |
+| `~/.local/share/icons/hicolor/.../io.github.voxhash.ProtonDriveDesktop.*` | Icons |
+| `~/.local/share/locale/*/LC_MESSAGES/proton-drive-desktop.mo` | gettext catalogs |
+
+It rewrites `Exec=` / `TryExec=` in the installed `.desktop` file to the absolute `~/.local/bin/proton-drive-desktop` path (so menus that check `TryExec` without `~/.local/bin` on `PATH` still show **Proton Drive**), then runs `update-desktop-database` and `gtk-update-icon-cache` when available.
+
 System-wide:
 
 ```bash
@@ -57,6 +70,31 @@ sudo make PREFIX=/usr/local install
 ```
 
 Arch packaging (AUR-ready, not published): `packaging/arch/PKGBUILD`. It installs the GUI only; install the CLI from AUR or Proton’s download page.
+
+## Uninstall
+
+Remove what `make user-install` / `./install.sh` put under `~/.local` (and optional session helpers):
+
+```bash
+make user-uninstall
+# or:
+./scripts/uninstall.sh
+./install.sh --uninstall
+```
+
+That removes the GUI binary, lib tree, desktop entry, metainfo, hicolor icons, locale `.mo` files, XDG autostart (`~/.config/autostart/io.github.voxhash.ProtonDriveDesktop.desktop` if Settings created it), and optional systemd user sync units (`proton-drive-desktop-sync.{service,timer,path}`).
+
+Defaults (safe for shared CLI installs):
+
+- Does **not** delete `~/.local/bin/proton-drive` (official Proton CLI). Use `--remove-cli` only if you want that binary gone too.
+- Does **not** wipe `~/.config/proton-drive-desktop` (settings / sync state). Use `--purge` to delete it.
+
+```bash
+./scripts/uninstall.sh --purge
+./install.sh --uninstall --purge --remove-cli
+```
+
+System-wide installs: `sudo make PREFIX=/usr/local uninstall` (does not touch XDG autostart or systemd user units under your home).
 
 ## GitHub Releases
 
