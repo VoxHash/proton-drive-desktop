@@ -190,7 +190,7 @@ def test_deb_control_and_smoke_build() -> None:
         env["DIST_DIR"] = tmp
         env["DEB_BUILD_DIR"] = str(Path(tmp) / "deb-build")
         proc = subprocess.run(
-            ["bash", str(build_sh), "1.14.0"],
+            ["bash", str(build_sh), "1.14.1"],
             cwd=str(ROOT),
             env=env,
             check=False,
@@ -202,14 +202,14 @@ def test_deb_control_and_smoke_build() -> None:
                 f"make deb / build-deb.sh failed ({proc.returncode}):\n"
                 f"{proc.stdout}\n{proc.stderr}"
             )
-        deb_path = Path(tmp) / "proton-drive-desktop_1.14.0_all.deb"
+        deb_path = Path(tmp) / "proton-drive-desktop_1.14.1_all.deb"
         assert deb_path.is_file(), deb_path
         listing = subprocess.check_output(["ar", "t", str(deb_path)], text=True)
         assert "debian-binary" in listing
         assert "control.tar.gz" in listing or "control.tar.xz" in listing
         assert "data.tar.gz" in listing or "data.tar.xz" in listing
         sums = (Path(tmp) / "SHA256SUMS").read_text(encoding="utf-8")
-        assert "proton-drive-desktop_1.14.0_all.deb" in sums
+        assert "proton-drive-desktop_1.14.1_all.deb" in sums
         # Extract control and confirm key fields + no CLI binary in data
         extract_dir = Path(tmp) / "extract"
         extract_dir.mkdir()
@@ -224,7 +224,7 @@ def test_deb_control_and_smoke_build() -> None:
         subprocess.check_call(["tar", "-xf", str(data_member), "-C", str(data_dir)])
         control = (control_dir / "control").read_text(encoding="utf-8")
         assert "Package: proton-drive-desktop" in control
-        assert "Version: 1.14.0" in control
+        assert "Version: 1.14.1" in control
         assert "Architecture: all" in control
         assert "python3-gi" in control
         assert (data_dir / "usr" / "bin" / "proton-drive-desktop").is_file()

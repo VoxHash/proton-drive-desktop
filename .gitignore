@@ -2,6 +2,10 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+venv/
+.env
+.env.*
+!.env.example
 dist/
 build/
 .cache/
@@ -12,8 +16,16 @@ locale/
 # Local agent / IDE markers (not part of the release)
 .cursor-agents-*
 .cursor/
+.idea/
+.vscode/
+*.swp
+*~
+scripts/cursor-agents-*
 
 # AppImage / release tooling downloaded under dist/ (also covered by dist/)
 dist/.tools/
 dist/appimage-build/
+dist/deb-build/
 *.AppImage
+*.deb
+SHA256SUMS

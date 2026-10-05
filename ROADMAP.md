@@ -37,8 +37,8 @@
 - [x] Optional AppImage build that still requires a system `proton-drive` on PATH (do not vendor Proton binaries)
 - [x] One-shot `install.sh`: system GTK deps, desktop launcher, optional CLI download only after verifying Proton’s published SHA-512 (see `protondrive-gui` / `pdrive-desktop`)
 - [x] Debian/Ubuntu `.deb` (`make deb` / Release asset): GUI only; Depends on distro GTK/PyGObject; never vendors `proton-drive` CLI
-- [ ] Publish the existing Arch PKGBUILD to the AUR (do not bundle Proton’s prebuilt CLI)
-- [ ] Flathub listing (CLI must stay an extra runtime the user installs; do not redistribute proton.me binaries)
+- [ ] **AUR**: publish existing `packaging/arch/PKGBUILD` (GUI only; do not bundle Proton’s prebuilt CLI)
+- [ ] **Flathub**: listing where `proton-drive` stays a user-installed extra runtime (do not redistribute proton.me binaries)
 
 
 
@@ -81,6 +81,16 @@
 - [x] CI: packaging smoke + existing `tests/test_*.py` on every PR
 
 
+
+## Remaining (blocked or publish work)
+
+| Item | Status |
+| --- | --- |
+| AUR publish (`packaging/arch/PKGBUILD`) | Open — PKGBUILD exists; not submitted |
+| Flathub listing | Open — CLI must remain external |
+| Storage / quota watch in Settings | Blocked — official CLI 0.8.0 has no quota/storage/usage API |
+| Official CLI `mount` / Proton Sync | Blocked — wait for Proton |
+| Official Proton Linux GUI | Blocked — replace this app when Proton ships it |
 
 ## Priority: watch Proton / ecosystem (do not reimplement)
 

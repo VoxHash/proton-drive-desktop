@@ -39,7 +39,7 @@ warn() { echo "${c_yellow}!${c_reset} $*"; }
 die() { echo "${c_red}error: $*${c_reset}" >&2; exit 1; }
 
 usage() {
-  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 }
 
