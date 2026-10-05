@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.14.2" date="2026-10-05">
+      <description>
+        <p>CI packaging smoke accepts dpkg-deb control/data members compressed with zstd (.tar.zst), matching modern Ubuntu runners.</p>
+      </description>
+    </release>
     <release version="1.14.1" date="2026-10-05">
       <description>
         <p>Fix scripts/uninstall.sh --help so it no longer prints set -euo pipefail after the usage text.</p>

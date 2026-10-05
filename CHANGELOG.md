@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.2] — 2026-10-05
+
+### Fixed
+
+- Offline packaging smoke accepts `control.tar.zst` / `data.tar.zst` from `dpkg-deb` on modern Ubuntu CI runners (previously only `.gz` / `.xz`, so CI failed while the `.deb` itself was valid)
+- CI installs `binutils` and `zstd` so the `.deb` smoke can list and extract zstd-compressed members
+
 ## [1.14.1] — 2026-10-05
 
 ### Fixed

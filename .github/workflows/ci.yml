@@ -28,7 +28,9 @@ jobs:
             gir1.2-adw-1 \
             gettext \
             libgtk-4-1 \
-            libadwaita-1-0
+            libadwaita-1-0 \
+            binutils \
+            zstd
 
       - name: Compile gettext catalogs
         run: make mo
