@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.0] — 2026-10-23
+
+### Added
+
+- Independent Settings toggles: **Enable drag files in (upload)** (default **ON**) and **Enable drag files out (to file manager)** (default **OFF**)
+- Deep name search (Ctrl+F scope): walk My files / Shared / current subtree with official `filesystem list` only — progress, cancel, name match; no content index
+- Glass-style CSS overlays on header, sidebar, transfer strip, and search chrome (Proton dark base retained)
+
+### Changed
+
+- Header toolbar cleaned up: keep back / search / view / menu / new / upload / download / refresh (+ trash-section empty/delete-permanent). Rename, copy, move, share, open, trash, and properties are **right-click** (icon + label)
+- Context menu actions use recognizable symbolic icons with tooltips
+
+### Caveats
+
+- Deep search is best-effort and slow on large trees (one CLI list per folder; fair-use rate limits). Not a content search engine.
+- Drag-out remains opt-in and risky on some compositors
+
 ## [1.17.0] — 2026-10-23
 
 ### Added
@@ -211,6 +229,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First GTK4 GUI for Proton's official Drive CLI on Linux
 - Live account listing, upload/download, trash, new folder
 
+[1.18.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.18.0
 [1.17.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.17.0
 [1.16.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.16.0
 [1.15.3]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.3

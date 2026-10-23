@@ -123,9 +123,26 @@ from .systemd_sync import (
 )
 from .tray import StatusNotifierTray
 from .transfer_queue import QueueSnapshot, TransferJob, TransferQueue
+from .deep_search import (
+    DEEP_SEARCH_SCOPE_CURRENT,
+    DEEP_SEARCH_SCOPE_FILTER,
+    DEEP_SEARCH_SCOPE_MY_FILES,
+    DEEP_SEARCH_SCOPE_SHARED,
+    DeepSearchCancelled,
+    DeepSearchHit,
+    deep_search_root,
+    deep_search_scope_allowed,
+    normalize_deep_search_scope,
+    walk_name_matches,
+)
+
 _UNSHAREABLE_ROOTS = {"/my-files", "/photos", "/shared-with-me", "/trash"}
 _INVITE_ROLES = ("viewer", "editor", "admin")
 _LINK_ROLES = ("viewer", "editor")
+
+# Toolbar: back / search / view / menu / new / upload / download / refresh /
+# trash-section empty+delete-permanent / login. Item actions (rename, copy, move,
+# share, open, trash, properties) are right-click only — see ROADMAP.
 
 
 def _sections() -> tuple[tuple[str, str, str], ...]:
@@ -625,6 +642,9 @@ class DriveWindow(Adw.ApplicationWindow):
         self._drag_out_ready_key: tuple[str, ...] | None = None
         self._drag_out_pending_key: tuple[str, ...] | None = None
         self._drag_out_gesture_active = False
+        self._deep_search_cancel: threading.Event | None = None
+        self._deep_search_active = False
+        self._deep_search_hits: list[DeepSearchHit] = []
         self._window_persist_source = 0
         self._view_mode = normalize_view_mode(cfg.get("view_mode"))
         self.set_icon_name(APP_ICON_NAME)
@@ -736,7 +756,7 @@ class DriveWindow(Adw.ApplicationWindow):
 
         self.search_btn = Gtk.ToggleButton(
             icon_name="system-search-symbolic",
-            tooltip_text=_("Filter current folder (Ctrl+F)"),
+            tooltip_text=_("Search / filter (Ctrl+F)"),
         )
         header.pack_start(self.search_btn)
 
@@ -750,6 +770,7 @@ class DriveWindow(Adw.ApplicationWindow):
             menu_btn.set_menu_model(application.app_menu)
         header.pack_end(menu_btn)
 
+        # Essentials only — rename/copy/move/share/open/trash live on right-click.
         self.trash_btn: Gtk.Button | None = None
         self.delete_permanently_btn: Gtk.Button | None = None
         self.empty_trash_btn: Gtk.Button | None = None
@@ -759,12 +780,6 @@ class DriveWindow(Adw.ApplicationWindow):
             ("folder-new-symbolic", _("New folder"), self._new_folder, "new_folder_btn"),
             ("document-save-symbolic", _("Upload"), self._upload, None),
             ("folder-download-symbolic", _("Download"), self._download, None),
-            ("emblem-shared-symbolic", _("Share or invitations"), self._share, None),
-            ("document-edit-symbolic", _("Rename"), self._rename, None),
-            ("edit-copy-symbolic", _("Copy"), self._copy, "copy_btn"),
-            ("send-to-symbolic", _("Move"), self._move, None),
-            ("document-open-symbolic", _("Open"), self._open_selected, None),
-            ("user-trash-symbolic", _("Move to trash"), self._trash, "trash_btn"),
             ("edit-delete-symbolic", _("Delete permanently"), self._delete_permanently, "delete_permanently_btn"),
             ("user-trash-full-symbolic", _("Empty trash"), self._empty_trash, "empty_trash_btn"),
             ("view-refresh-symbolic", _("Refresh"), lambda *_: self.reload(), None),
@@ -785,11 +800,52 @@ class DriveWindow(Adw.ApplicationWindow):
 
         content_toolbar.add_top_bar(header)
 
-        self.search_entry = Gtk.SearchEntry(placeholder_text=_("Filter current folder…"), hexpand=True)
+        search_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8, hexpand=True)
+        search_row.add_css_class("search-chrome")
+        self.search_entry = Gtk.SearchEntry(
+            placeholder_text=_("Filter this folder, or deep-search the tree…"),
+            hexpand=True,
+        )
         self.search_entry.connect("search-changed", self._on_search_changed)
+        self.search_entry.connect("activate", self._on_search_activate)
         self.search_entry.connect("stop-search", self._on_stop_search)
+        scope_labels = [
+            _("This folder (filter)"),
+            _("Deep: this folder"),
+            _("Deep: My files"),
+            _("Deep: Shared with me"),
+        ]
+        self._search_scope_ids = [
+            DEEP_SEARCH_SCOPE_FILTER,
+            DEEP_SEARCH_SCOPE_CURRENT,
+            DEEP_SEARCH_SCOPE_MY_FILES,
+            DEEP_SEARCH_SCOPE_SHARED,
+        ]
+        self.search_scope = Gtk.DropDown.new_from_strings(scope_labels)
+        self.search_scope.set_tooltip_text(
+            _(
+                "Filter only lists the current folder. Deep search walks folders with "
+                "official proton-drive filesystem list (name match only — slow; cancel anytime)."
+            )
+        )
+        self.search_scope.set_selected(0)
+        self.deep_search_btn = Gtk.Button(
+            icon_name="edit-find-symbolic",
+            tooltip_text=_("Run deep search (Enter)"),
+        )
+        self.deep_search_btn.connect("clicked", self._on_search_activate)
+        self.deep_search_cancel_btn = Gtk.Button(
+            icon_name="process-stop-symbolic",
+            tooltip_text=_("Cancel deep search"),
+            visible=False,
+        )
+        self.deep_search_cancel_btn.connect("clicked", self._cancel_deep_search)
+        search_row.append(self.search_scope)
+        search_row.append(self.search_entry)
+        search_row.append(self.deep_search_btn)
+        search_row.append(self.deep_search_cancel_btn)
         self.search_bar = Gtk.SearchBar(show_close_button=True)
-        self.search_bar.set_child(self.search_entry)
+        self.search_bar.set_child(search_row)
         self.search_bar.connect_entry(self.search_entry)
         self.search_bar.bind_property(
             "search-mode-enabled",
@@ -799,7 +855,14 @@ class DriveWindow(Adw.ApplicationWindow):
         )
         content_toolbar.add_top_bar(self.search_bar)
 
-        self.status = Gtk.Label(xalign=0, margin_start=16, margin_end=16, margin_top=6, margin_bottom=6, css_classes=["dim-label"])
+        self.status = Gtk.Label(
+            xalign=0,
+            margin_start=16,
+            margin_end=16,
+            margin_top=6,
+            margin_bottom=6,
+            css_classes=["dim-label", "status-glass"],
+        )
         content_toolbar.add_bottom_bar(self.status)
 
         # Persistent transfer strip: browsing stays on the file list while CLI jobs run.
@@ -811,6 +874,7 @@ class DriveWindow(Adw.ApplicationWindow):
             margin_top=6,
             margin_bottom=6,
             visible=False,
+            css_classes=["transfer-strip"],
         )
         self.transfer_label = Gtk.Label(
             xalign=0,
@@ -1372,6 +1436,8 @@ class DriveWindow(Adw.ApplicationWindow):
 
     def reload(self) -> None:
         path = self.current_path
+        self._cancel_deep_search()
+        self._deep_search_hits = []
         self._clear_search_query()
         self._set_busy(True, _("Reading {path}").format(path=path))
         self._rebuild_breadcrumbs()
@@ -1384,15 +1450,6 @@ class DriveWindow(Adw.ApplicationWindow):
             self.empty_trash_btn.set_visible(in_trash)
         if self.new_folder_btn is not None:
             self.new_folder_btn.set_tooltip_text(_("New album") if in_photos else _("New folder"))
-        if self.copy_btn is not None:
-            self.copy_btn.set_tooltip_text(_("Add to album") if in_photos else _("Copy"))
-        if self.trash_btn is not None:
-            if in_trash:
-                self.trash_btn.set_tooltip_text(_("Restore"))
-            elif in_photos:
-                self.trash_btn.set_tooltip_text(_("Delete album or remove from album"))
-            else:
-                self.trash_btn.set_tooltip_text(_("Move to trash"))
         if self.section == "/photos":
             cache = self._timeline_cache
             self._bg(lambda: self._load_photos(path, cache), self._on_photos, self._on_nav_error)
@@ -1589,17 +1646,154 @@ class DriveWindow(Adw.ApplicationWindow):
         else:
             self.status.set_text(count_text)
 
+    def _selected_search_scope(self) -> str:
+        idx = int(self.search_scope.get_selected())
+        if idx < 0 or idx >= len(self._search_scope_ids):
+            return DEEP_SEARCH_SCOPE_FILTER
+        return normalize_deep_search_scope(self._search_scope_ids[idx])
+
     def _on_search_changed(self, entry: Gtk.SearchEntry) -> None:
-        self._search_query = entry.get_text() or ""
+        scope = self._selected_search_scope()
+        text = entry.get_text() or ""
+        if scope != DEEP_SEARCH_SCOPE_FILTER:
+            # Deep mode: typing alone does not walk; Enter / Find runs the walk.
+            return
+        self._search_query = text
         self.name_filter.changed(Gtk.FilterChange.DIFFERENT)
         if self.store.get_n_items() > 0:
             self.stack.set_visible_child_name("list")
             self._refresh_listing_status()
 
+    def _on_search_activate(self, *_args) -> None:
+        scope = self._selected_search_scope()
+        query = (self.search_entry.get_text() or "").strip()
+        if scope == DEEP_SEARCH_SCOPE_FILTER:
+            self._search_query = query
+            self.name_filter.changed(Gtk.FilterChange.DIFFERENT)
+            self._refresh_listing_status()
+            return
+        if not query:
+            self._toast(_("Enter a name to deep-search"))
+            return
+        if not deep_search_scope_allowed(scope, section=self.section) and scope == DEEP_SEARCH_SCOPE_CURRENT:
+            self._toast(_("Deep: this folder is available in My files or Shared with me"))
+            return
+        root = deep_search_root(scope, current_path=self.current_path, section=self.section)
+        if root is None:
+            self._toast(_("Deep search is not available here"))
+            return
+        self._start_deep_search(root, query)
+
+    def _start_deep_search(self, root: str, query: str) -> None:
+        self._cancel_deep_search()
+        cancel = threading.Event()
+        self._deep_search_cancel = cancel
+        self._deep_search_active = True
+        self.deep_search_cancel_btn.set_visible(True)
+        self.deep_search_btn.set_sensitive(False)
+        self.status.set_text(_("Deep search… (official CLI list walk; cancel anytime)"))
+
+        def work():
+            def progress(folders: int, _path: str, hits: int) -> None:
+                # Avoid logging remote paths; only counts for the status line.
+                GLib.idle_add(
+                    self._on_deep_search_progress,
+                    folders,
+                    hits,
+                )
+
+            return walk_name_matches(
+                self.cli,
+                root,
+                query,
+                cancel=cancel,
+                on_progress=progress,
+            )
+
+        def done(hits: list[DeepSearchHit]) -> None:
+            self._deep_search_active = False
+            self._deep_search_cancel = None
+            self.deep_search_cancel_btn.set_visible(False)
+            self.deep_search_btn.set_sensitive(True)
+            self._show_deep_search_hits(hits, query=query, root=root)
+
+        def failed(exc: BaseException) -> None:
+            self._deep_search_active = False
+            self._deep_search_cancel = None
+            self.deep_search_cancel_btn.set_visible(False)
+            self.deep_search_btn.set_sensitive(True)
+            if isinstance(exc, DeepSearchCancelled):
+                self._toast(_("Deep search cancelled"))
+                self._refresh_listing_status()
+                return
+            if isinstance(exc, NotLoggedIn):
+                self._fail(exc)
+                return
+            self._toast(_("Deep search failed: {error}").format(error=str(exc)[:140]))
+
+        self._bg(work, done, failed)
+
+    def _on_deep_search_progress(self, folders: int, hits: int) -> bool:
+        if not self._deep_search_active:
+            return False
+        self.status.set_text(
+            _("Deep search… {folders} folders · {hits} matches").format(
+                folders=folders,
+                hits=hits,
+            )
+        )
+        return False
+
+    def _show_deep_search_hits(self, hits: list[DeepSearchHit], *, query: str, root: str) -> None:
+        self._deep_search_hits = list(hits)
+        self._search_query = ""
+        if hasattr(self, "name_filter"):
+            self.name_filter.changed(Gtk.FilterChange.DIFFERENT)
+        self.store.remove_all()
+        for hit in hits:
+            node = dict(hit.node)
+            if not node.get("type"):
+                node["type"] = hit.kind
+            if not node.get("name"):
+                node["name"] = hit.name
+            self.store.append(DriveItem(node, hit.path))
+        count = len(hits)
+        self._listing_status_extra = _(
+            "Deep search “{query}” under {root} · name match only · not indexed"
+        ).format(query=query, root=root)
+        if count == 0:
+            self.empty.set_title(_("No matches"))
+            self.empty.set_description(
+                _(
+                    "Deep search walks folders with proton-drive filesystem list. "
+                    "Large trees are slow; try a narrower scope or a longer name fragment."
+                )
+            )
+            self.stack.set_visible_child_name("empty")
+        else:
+            self.stack.set_visible_child_name("list")
+        self._refresh_listing_status()
+        self._toast(
+            ngettext("{count} match", "{count} matches", count).format(count=count)
+        )
+
+    def _cancel_deep_search(self, *_args) -> None:
+        if self._deep_search_cancel is not None:
+            self._deep_search_cancel.set()
+        self._deep_search_active = False
+        if hasattr(self, "deep_search_cancel_btn"):
+            self.deep_search_cancel_btn.set_visible(False)
+        if hasattr(self, "deep_search_btn"):
+            self.deep_search_btn.set_sensitive(True)
+
     def _on_stop_search(self, *_args) -> None:
+        self._cancel_deep_search()
         self.search_bar.set_search_mode(False)
         if self.search_entry.get_text():
             self.search_entry.set_text("")
+        if self._deep_search_hits:
+            self._deep_search_hits = []
+            self.reload()
 
     def _toggle_search(self, *_args) -> None:
         enabled = not self.search_bar.get_search_mode()
@@ -1660,12 +1854,32 @@ class DriveWindow(Adw.ApplicationWindow):
         if key_requests_trash(keyval):
             self._trash()
             return True
-        if keyval == Gdk.KEY_Escape and self.search_bar.get_search_mode():
-            self._on_stop_search()
-            return True
+        if keyval == Gdk.KEY_Escape:
+            if self._deep_search_active:
+                self._cancel_deep_search()
+                self._toast(_("Cancelling deep search…"))
+                return True
+            if self.search_bar.get_search_mode():
+                self._on_stop_search()
+                return True
         return False
 
+    def _context_action_button(
+        self, label: str, icon: str, handler, popover: Gtk.Popover
+    ) -> Gtk.Button:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        row.append(Gtk.Image.new_from_icon_name(icon))
+        lab = Gtk.Label(label=label, xalign=0, hexpand=True)
+        row.append(lab)
+        btn = Gtk.Button(has_frame=False)
+        btn.set_child(row)
+        btn.add_css_class("context-action")
+        btn.set_tooltip_text(label)
+        btn.connect("clicked", lambda _b, h=handler, p=popover: (p.popdown(), h()))
+        return btn
+
     def _on_item_context(self, gesture, _n_press, x, y) -> None:
+        """Right-click menu: item actions moved off the header for a cleaner toolbar."""
         view = gesture.get_widget() or self._active_files_view()
         ctrl = bool(gesture.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK)
         self._select_files_at_pointer(view, x, y, additive=ctrl)
@@ -1676,51 +1890,68 @@ class DriveWindow(Adw.ApplicationWindow):
         if self._item_popover is not None:
             self._item_popover.popdown()
             self._item_popover.unparent()
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        # (label, symbolic icon, handler)
+        actions: list[tuple[str, str, object]] = []
         if len(items) > 1:
             if self.section == "/trash":
-                actions = [(_("Restore"), self._trash)]
+                actions = [(_("Restore"), "edit-undo-symbolic", self._trash)]
             elif self.section == "/photos":
                 if _photos_album_path(self.current_path) and all(i.kind == "photo" for i in items):
-                    actions = [(_("Remove from album"), self._trash), (_("Download"), self._download)]
-                elif all(is_downloadable_kind(i.kind) for i in items):
-                    actions = [(_("Download"), self._download)]
+                    actions = [
+                        (_("Remove from album"), "list-remove-symbolic", self._trash),
+                        (_("Download"), "folder-download-symbolic", self._download),
+                    ]
                 else:
-                    actions = [(_("Download"), self._download)]
+                    actions = [(_("Download"), "folder-download-symbolic", self._download)]
             else:
                 actions = [
-                    (_("Download"), self._download),
-                    (_("Move"), self._move),
-                    (_("Move to trash"), self._trash),
+                    (_("Download"), "folder-download-symbolic", self._download),
+                    (_("Move"), "send-to-symbolic", self._move),
+                    (_("Move to trash"), "user-trash-symbolic", self._trash),
                 ]
         elif self.section == "/trash":
             actions = [
-                (_("Restore"), self._trash),
-                (_("Delete permanently"), self._delete_permanently),
-                (_("Empty trash"), self._empty_trash),
+                (_("Restore"), "edit-undo-symbolic", self._trash),
+                (_("Delete permanently"), "edit-delete-symbolic", self._delete_permanently),
+                (_("Empty trash"), "user-trash-full-symbolic", self._empty_trash),
             ]
         elif self.section == "/photos":
             item = items[0]
             if item.kind == "album":
-                actions = [(_("Rename"), self._rename), (_("Delete album"), self._delete_album)]
+                actions = [
+                    (_("Open"), "document-open-symbolic", self._open_selected),
+                    (_("Rename"), "document-edit-symbolic", self._rename),
+                    (_("Delete album"), "user-trash-symbolic", self._delete_album),
+                ]
             elif item.kind == "photo" and _photos_album_path(self.current_path):
-                actions = [(_("Add to album"), self._add_to_album), (_("Remove from album"), self._remove_from_album)]
+                actions = [
+                    (_("Download"), "folder-download-symbolic", self._download),
+                    (_("Add to album"), "emblem-photos-symbolic", self._add_to_album),
+                    (_("Remove from album"), "list-remove-symbolic", self._remove_from_album),
+                ]
             elif item.kind == "photo":
-                actions = [(_("Add to album"), self._add_to_album)]
+                actions = [
+                    (_("Download"), "folder-download-symbolic", self._download),
+                    (_("Add to album"), "emblem-photos-symbolic", self._add_to_album),
+                ]
             else:
-                actions = [(_("Open"), self._open_selected)]
+                actions = [(_("Open"), "document-open-symbolic", self._open_selected)]
         else:
-            actions = [(_("Rename"), self._rename), (_("Copy"), self._copy), (_("Move"), self._move)]
+            actions = [
+                (_("Open"), "document-open-symbolic", self._open_selected),
+                (_("Download"), "folder-download-symbolic", self._download),
+                (_("Share…"), "emblem-shared-symbolic", self._share),
+                (_("Rename"), "document-edit-symbolic", self._rename),
+                (_("Copy"), "edit-copy-symbolic", self._copy),
+                (_("Move"), "send-to-symbolic", self._move),
+                (_("Move to trash"), "user-trash-symbolic", self._trash),
+            ]
         if len(items) == 1:
-            actions = list(actions) + [(_("Properties"), self._properties)]
+            actions = list(actions) + [(_("Properties"), "dialog-information-symbolic", self._properties)]
         popover = Gtk.Popover()
-        for label, handler in actions:
-            btn = Gtk.Button(label=label, has_frame=False)
-            child = btn.get_child()
-            if isinstance(child, Gtk.Label):
-                child.set_xalign(0)
-            btn.connect("clicked", lambda _b, h=handler, p=popover: (p.popdown(), h()))
-            box.append(btn)
+        for label, icon, handler in actions:
+            box.append(self._context_action_button(label, icon, handler, popover))
         popover.set_child(box)
         popover.set_parent(self._active_files_view())
         rect = Gdk.Rectangle()
@@ -1808,6 +2039,9 @@ class DriveWindow(Adw.ApplicationWindow):
         self._start_upload(paths)
 
     def _on_files_dropped(self, _target, value, _x, _y) -> bool:
+        if not self._drag_in_enabled():
+            self._toast(_("Drag-in upload is disabled in Settings"))
+            return False
         if self.section != "/my-files":
             self._toast(_("Drag and drop uploads only in My files"))
             return False
@@ -1822,6 +2056,9 @@ class DriveWindow(Adw.ApplicationWindow):
             return False
         self._start_upload(paths)
         return True
+
+    def _drag_in_enabled(self) -> bool:
+        return bool(load_config().get("drag_in_enabled", True))
 
     def _drag_out_enabled(self) -> bool:
         return bool(load_config().get("drag_out_enabled"))
@@ -3847,16 +4084,26 @@ class SettingsDialog(Adw.PreferencesDialog):
         self.transfer_concurrency_row.set_value(float(current_conc))
         self.transfer_concurrency_row.connect("notify::value", self._on_transfer_concurrency)
         folders.add(self.transfer_concurrency_row)
+        self._drag_in_guard = False
+        self.drag_in_row = Adw.SwitchRow(
+            title=_("Enable drag files in (upload)"),
+            subtitle=_(
+                "Drop local files/folders onto My files to upload (independent of drag-out). "
+                "On by default."
+            ),
+        )
+        self.drag_in_row.set_active(bool(self.cfg.get("drag_in_enabled", True)))
+        self.drag_in_row.connect("notify::active", self._on_drag_in_enabled)
+        folders.add(self.drag_in_row)
         self._drag_out_guard = False
         self.drag_out_row = Adw.SwitchRow(
-            title=_("Enable drag files to file manager"),
+            title=_("Enable drag files out (to file manager)"),
             subtitle=_(
-                "Opt-in and off by default. In My files, the first drag downloads the "
-                "selection via the transfer queue into a staging folder; drag again when "
-                "ready to offer Gdk.FileList. prepare never blocks or pumps GDK. "
-                "Still risky on some compositors/file managers (files may stay under "
-                "/tmp staging) — use toolbar Download if that happens. Rubber-band "
-                "multi-select from empty gaps is unchanged."
+                "Opt-in and off by default — independent of drag-in. In My files, the first "
+                "drag downloads via the transfer queue into staging; drag again when ready "
+                "for Gdk.FileList. prepare never blocks or pumps GDK. Still risky on some "
+                "compositors (files may stay under /tmp staging) — use toolbar Download if "
+                "that happens."
             ),
         )
         self.drag_out_row.set_active(bool(self.cfg.get("drag_out_enabled")))
@@ -4265,6 +4512,17 @@ class SettingsDialog(Adw.PreferencesDialog):
             ).format(count=value)
         )
 
+    def _on_drag_in_enabled(self, row, _pspec) -> None:
+        if self._drag_in_guard:
+            return
+        enabled = bool(row.get_active())
+        if enabled == bool(self.cfg.get("drag_in_enabled", True)):
+            return
+        self._persist(drag_in_enabled=enabled)
+        self.window._toast(
+            _("Drag-in upload enabled") if enabled else _("Drag-in upload disabled")
+        )
+
     def _on_drag_out_enabled(self, row, _pspec) -> None:
         if self._drag_out_guard:
             return
@@ -4273,10 +4531,10 @@ class SettingsDialog(Adw.PreferencesDialog):
             return
         self._persist(drag_out_enabled=enabled)
         if enabled:
-            self.window._toast(_("Drag to file manager enabled — My files only; drag twice (stage, then drop)"))
+            self.window._toast(_("Drag-out enabled — My files only; drag twice (stage, then drop)"))
         else:
             self.window._clear_drag_out_staging(restore_rubberband=True)
-            self.window._toast(_("Drag to file manager disabled"))
+            self.window._toast(_("Drag-out disabled"))
 
     def _on_theme(self, row, _pspec) -> None:
         name = ["dark", "light", "system"][int(row.get_selected())]

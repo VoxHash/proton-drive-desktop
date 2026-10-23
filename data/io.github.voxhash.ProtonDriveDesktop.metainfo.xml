@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.18.0" date="2026-10-23">
+      <description>
+        <p>Independent drag-in (upload, default on) and drag-out (default off) settings. Cleaner toolbar: item actions moved to the right-click menu. Deep name search walks folders with official filesystem list (cancelable; no content index). Glass-style CSS and clearer context icons.</p>
+      </description>
+    </release>
     <release version="1.17.0" date="2026-10-23">
       <description>
         <p>Account takeout wizard in Settings and Help runs real proton-drive takeout run (my-files, devices, photos, revisions). Opt-in drag-out from My files to a file manager (default off): stage via the transfer queue, then Gdk.FileList on the next drag — prepare never pumps GDK. Residual staging risk documented; toolbar Download remains the safe path.</p>

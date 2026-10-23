@@ -18,8 +18,9 @@ Not affiliated with Proton AG. The app/tray icon is Proton’s official Drive ma
 - Share and invitations from the UI (`proton-drive sharing` / `invitation list`)
 - Upload, download, new folder, rename, copy, move, trash, restore, delete permanently, empty trash
 - Parallel toolbar transfers (default 2 concurrent official CLI processes; Settings 1–4) while browsing; bottom progress strip
-- Drag-and-drop upload onto My files (files and folders into the current remote folder)
-- Opt-in drag-out download from My files to a file manager (Settings, **default OFF**; stage then `Gdk.FileList` — still risky on some compositors)
+- Drag-in upload onto My files (**default ON**) and opt-in drag-out to a file manager (**default OFF**) — independent Settings toggles
+- Cleaner toolbar; item actions (rename/copy/move/share/trash/properties) on right-click
+- Deep name search across My files / Shared via official `filesystem list` walk (cancelable; no content index)
 - Account takeout wizard (Settings / Help) wrapping official `proton-drive takeout run`
 - Folder size in Properties via `proton-drive filesystem size` (CLI 0.9.0+)
 - Help and Settings (official Drive Help URL, live CLI account, Storage quota Unavailable until Proton’s CLI exposes it, CLI version vs Proton newer check, theme, language, download folder, parallel transfers, drag-out toggle, account takeout, always-on folder, CLI path, autostart)
@@ -121,7 +122,8 @@ Open the primary menu (hamburger) for **Settings**, **Guided setup**, **Proton D
 | Settings → Language | System default, English, or ru / zh_CN / ar / it / pt / es / ko / ja (native names; Arabic RTL; `pt` also matches pt_BR); restarts the app | System default |
 | Settings → Download folder | Where toolbar downloads are saved | `~/Downloads` |
 | Settings → Parallel transfers | Max concurrent toolbar upload/download CLI processes (`gui.json` `transfer_max_concurrency`) | 2 (range 1–4) |
-| Settings → Enable drag files to file manager | Opt-in My files → local FM drag-out (`gui.json` `drag_out_enabled`) | Off |
+| Settings → Enable drag files in (upload) | Drop local files onto My files (`drag_in_enabled`) | On |
+| Settings → Enable drag files out (to file manager) | Opt-in My files → local FM drag-out (`drag_out_enabled`) | Off |
 | Settings / Help → Account takeout | Wizard for official `takeout run` (sections + folder) | — |
 | Settings → Storage quota | Probes live `proton-drive --help` for a quota command; Unavailable on CLI 0.9.0 (no invented numbers) | Unavailable |
 | Properties → Size (folders) | `proton-drive filesystem size` (CLI 0.9.0+) | Bytes + descendant count |

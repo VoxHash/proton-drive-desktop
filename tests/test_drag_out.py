@@ -67,6 +67,7 @@ def test_collect_staged_paths(tmp_path: Path | None = None) -> None:
 
 def test_drag_out_enabled_default_off() -> None:
     assert config._DEFAULTS.get("drag_out_enabled") is False
+    assert config._DEFAULTS.get("drag_in_enabled") is True
     folder = Path(tempfile.mkdtemp(prefix="proton-drive-desktop-drag-cfg-"))
     original_dir, original_path = config.CONFIG_DIR, config.CONFIG_PATH
     config.CONFIG_DIR = folder
@@ -75,8 +76,11 @@ def test_drag_out_enabled_default_off() -> None:
         config.save({})
         loaded = config.load()
         assert loaded.get("drag_out_enabled") is False
-        config.save({"drag_out_enabled": True})
-        assert config.load().get("drag_out_enabled") is True
+        assert loaded.get("drag_in_enabled") is True
+        config.save({"drag_out_enabled": True, "drag_in_enabled": False})
+        again = config.load()
+        assert again.get("drag_out_enabled") is True
+        assert again.get("drag_in_enabled") is False
     finally:
         config.CONFIG_DIR = original_dir
         config.CONFIG_PATH = original_path

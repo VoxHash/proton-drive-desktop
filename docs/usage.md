@@ -1,8 +1,14 @@
 # Usage
 
-Launch `proton-drive-desktop`. Sidebar sections map to CLI paths `/my-files`, `/photos`, `/shared-with-me`, `/trash`. Enter opens a folder. Download writes to the folder in Settings (default `~/Downloads`). In **My files**, drag and drop local files or folders onto the file view to upload into the current remote folder (`filesystem upload`). Use the Download toolbar action for downloads. Rubber-band multi-select works from empty gaps between items.
+Launch `proton-drive-desktop`. Sidebar sections map to CLI paths `/my-files`, `/photos`, `/shared-with-me`, `/trash`. Enter opens a folder. Download writes to the folder in Settings (default `~/Downloads`). Rubber-band multi-select works from empty gaps between items.
 
-Optional **drag out** to a local file manager (Settings → Downloads → **Enable drag files to file manager**, **off by default**): in My files, the first drag stages a real CLI download into a temp folder via the transfer queue; when the strip finishes, drag the same selection again to offer `Gdk.FileList`. `prepare` never blocks or pumps GDK. Still risky on some compositors — if the copy lands only under `/tmp` staging, use toolbar Download instead.
+**Toolbar vs right-click:** the header keeps back, search, view, menu, new folder/album, upload, download, refresh, and trash-section empty/delete-permanent. Open, share, rename, copy, move, trash/restore, and properties are on the **right-click** menu (symbolic icons + labels).
+
+**Drag-in / drag-out** are independent Settings toggles under Downloads:
+- **Enable drag files in (upload)** — **on by default**. Drop local files onto My files (`filesystem upload`).
+- **Enable drag files out (to file manager)** — **off by default**. First drag stages a CLI download; drag again for `Gdk.FileList`. Still risky on some compositors — prefer toolbar Download if drops stay under `/tmp`.
+
+**Search (Ctrl+F):** default scope filters the current folder listing. Choose a **Deep:** scope and press Enter / Find to walk the tree with official `filesystem list` (name match only; cancel anytime; no content index; slow on large drives).
 
 **Account takeout** (Settings → Account takeout, or Help → Account takeout) runs official `proton-drive takeout run` with chosen sections (`my-files` / `devices` / `photos` / `revisions`) into a local folder. It does not change your account.
 

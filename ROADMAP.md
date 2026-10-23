@@ -44,13 +44,15 @@
 
 ## Priority: desktop UX parity
 
-- [x] Drag-and-drop upload onto the file view (files and folders in My files)
-- [x] Drag-out download from My files onto a local folder — **opt-in, still risky** (Settings → Enable drag files to file manager, **default OFF**). Stage via transfer queue on first drag; `prepare` returns `Gdk.FileList` only when ready (no MainContext pump). Rubberband disabled on item press. Residual risk: some FMs/compositors may leave files under staging `/tmp` — use toolbar Download if that happens
+- [x] Drag-and-drop upload onto the file view (files and folders in My files) — Settings **Enable drag files in (upload)**, **default ON**; independent of drag-out
+- [x] Drag-out download from My files onto a local folder — **opt-in, still risky** (Settings → **Enable drag files out**, **default OFF**). Stage via transfer queue on first drag; `prepare` returns `Gdk.FileList` only when ready (no MainContext pump). Rubberband disabled on item press. Residual risk: some FMs/compositors may leave files under staging `/tmp` — use toolbar Download if that happens
+- [x] Toolbar cleanup — keep essentials (back, search, view, menu, new, upload, download, refresh, trash-section empty/delete-permanent); item actions (open, share, rename, copy, move, trash, properties) on **right-click** with symbolic icons
 - [x] Transfer progress for upload/download (best-effort scrape of CLI spinner text until Proton ships JSON progress)
 - [x] In-memory transfer queue with configurable parallel CLI processes (default 2, Settings 1–4) and cancel of owned process trees
 - [x] Browse My files / other sections while toolbar transfers run (bottom transfer strip; no full-page busy overlay for uploads/downloads)
 - [x] Native helper analysis: **deferred** — keep Python GTK UI; raise CLI concurrency in `TransferQueue` (Rust/Go/Zig/C helper not justified; Ruby is a poor fit; do not rewrite GUI or Proton crypto)
 - [x] In-list search / filter (Ctrl+F) over the current folder listing
+- [x] Deep name search (scope: this folder / My files / Shared) via official `filesystem list` walk — cancelable; name metadata only; no content index; slow on large trees
 - [x] Clickable breadcrumb trail for the current remote path
 - [x] List / grid view toggle with extension-aware file-type icons
 - [x] Multi-select bulk trash / download / move
