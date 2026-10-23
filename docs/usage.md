@@ -1,6 +1,6 @@
 # Usage
 
-Launch `proton-drive-desktop`. Sidebar sections map to CLI paths `/my-files`, `/photos`, `/shared-with-me`, `/trash`. Enter opens a folder. Download writes to the folder in Settings (default `~/Downloads`). In **My files**, drag and drop local files or folders onto the file view to upload into the current remote folder (`filesystem upload`).FileList` so the desktop copies into the drop path (multi-select supported; Shared / Trash / Photos are not drag-out sources).
+Launch `proton-drive-desktop`. Sidebar sections map to CLI paths `/my-files`, `/photos`, `/shared-with-me`, `/trash`. Enter opens a folder. Download writes to the folder in Settings (default `~/Downloads`). In **My files**, drag and drop local files or folders onto the file view to upload into the current remote folder (`filesystem upload`).FileList` so the desktop copies into the drop path (list and grid; multi-select supported; Shared / Trash / Photos are not drag-out sources). Rubber-band selection still works from empty gaps between items.
 
 **Photos** lists albums from `proton-drive album list` above the capture-date timeline. New album (the folder-new toolbar button in Photos) runs `album create`. Rename an album with the toolbar, F2, or right-click (`album update -n`). Delete album asks for confirmation then runs `album delete -s` (photos stay in the timeline). Open a day, select a photo, then Copy / Add to album (`album add-photo` with `/photos/{uid}`). Inside an album, Remove from album or the trash button runs `album remove-photo`.
 

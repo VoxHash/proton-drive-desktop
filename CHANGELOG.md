@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.1] — 2026-10-23
+
+### Fixed
+
+- Drag-out from My files: `Gtk.DragSource` now wins over ColumnView/GridView rubberband (Nautilus-style disable-on-item-press), and transfer wait during `prepare` no longer pumps GDK button-release (which aborted the grab before `Gdk.FileList` was ready)
+
 ## [1.15.0] — 2026-10-23
 
 ### Added
