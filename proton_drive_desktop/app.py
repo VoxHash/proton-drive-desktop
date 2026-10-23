@@ -819,9 +819,18 @@ class DriveWindow(Adw.ApplicationWindow):
             right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
             right_click.connect("pressed", self._on_item_context)
             view.add_controller(right_click)
+            # Nautilus-style: rubberband steals button1 from DragSource. Disable it
+            # while pressing a row/cell so drag-out can claim the sequence.
+            item_press = Gtk.GestureClick(button=Gdk.BUTTON_PRIMARY)
+            item_press.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+            item_press.connect("pressed", self._on_files_item_pressed)
+            item_press.connect("released", self._on_files_item_released)
+            item_press.connect("cancel", self._on_files_item_gesture_cancel)
+            view.add_controller(item_press)
             drag = Gtk.DragSource.new()
             drag.set_actions(Gdk.DragAction.COPY)
             drag.connect("prepare", self._on_drag_out_prepare)
+            drag.connect("drag-begin", self._on_drag_out_begin)
             drag.connect("drag-end", self._on_drag_out_end)
             view.add_controller(drag)
         self._item_popover: Gtk.Popover | None = None
@@ -1721,20 +1730,59 @@ class DriveWindow(Adw.ApplicationWindow):
         self._start_upload(paths)
         return True
 
-    def _wait_transfers_idle(self, *, timeout_s: float = 3600.0) -> bool:
-        """Pump the main context until the transfer queue is idle (for drag-out)."""
+    def _wait_transfers_idle(self, *, timeout_s: float = 3600.0, pump_gtk: bool = True) -> bool:
+        """Wait until the transfer queue is idle.
+
+        When *pump_gtk* is True, dispatch main-context sources (progress UI).
+        For drag-out ``prepare``, set *pump_gtk* False and poll the thread-safe
+        snapshot instead — pumping would deliver button-release and cancel the
+        gesture before ``Gdk.FileList`` content is ready.
+        """
         deadline = time.monotonic() + timeout_s
         ctx = GLib.MainContext.default()
         while time.monotonic() < deadline:
             snap = self.transfers.snapshot()
             if snap.active is None and snap.pending_count == 0:
+                if not pump_gtk:
+                    return True
                 while ctx.pending():
                     ctx.iteration(False)
                 snap = self.transfers.snapshot()
                 if snap.active is None and snap.pending_count == 0:
                     return True
-            ctx.iteration(True)
+            if pump_gtk:
+                ctx.iteration(True)
+            else:
+                time.sleep(0.05)
         return False
+
+    def _set_files_rubberband(self, enabled: bool) -> None:
+        """Toggle rubberband on list + grid (Nautilus workaround vs DragSource)."""
+        self.column.set_enable_rubberband(enabled)
+        self.grid.set_enable_rubberband(enabled)
+
+    def _pointer_on_files_item(self, view: Gtk.Widget, x: float, y: float) -> bool:
+        """True when (x, y) hits a row/cell child rather than empty view chrome."""
+        target = view.pick(x, y, Gtk.PickFlags.DEFAULT)
+        if target is None or target is view:
+            return False
+        widget: Gtk.Widget | None = target
+        while widget is not None:
+            if widget is view:
+                return True
+            widget = widget.get_parent()
+        return False
+
+    def _on_files_item_pressed(self, gesture, _n_press, x, y) -> None:
+        view = gesture.get_widget()
+        if view is not None and self._pointer_on_files_item(view, x, y):
+            self._set_files_rubberband(False)
+
+    def _on_files_item_released(self, _gesture, _n_press, _x, _y) -> None:
+        self._set_files_rubberband(True)
+
+    def _on_files_item_gesture_cancel(self, _gesture, *_args) -> None:
+        self._set_files_rubberband(True)
 
     def _on_drag_out_prepare(self, _source, _x, _y) -> Gdk.ContentProvider | None:
         """Download selected My files into a staging dir, then offer them as a FileList.
@@ -1745,6 +1793,8 @@ class DriveWindow(Adw.ApplicationWindow):
         items = filter_drag_out_items(self.section, self._selected_items())
         if not items:
             return None
+        # Keep rubberband off for the whole prepare + drag sequence.
+        self._set_files_rubberband(False)
         if self._drag_out_staging is not None:
             shutil.rmtree(self._drag_out_staging, ignore_errors=True)
             self._drag_out_staging = None
@@ -1757,6 +1807,7 @@ class DriveWindow(Adw.ApplicationWindow):
             "Preparing drag-out download ({count} items)",
             len(remotes),
         ).format(count=len(remotes))
+        self._toast(label)
 
         def runner(on_progress):
             for remote in remotes:
@@ -1772,15 +1823,17 @@ class DriveWindow(Adw.ApplicationWindow):
         self._drag_out_active = True
         try:
             self._enqueue_transfer("download", label, runner)
-            if not self._wait_transfers_idle():
+            if not self._wait_transfers_idle(pump_gtk=False):
                 self._toast(_("Drag-out download timed out"))
                 shutil.rmtree(staging, ignore_errors=True)
                 self._drag_out_staging = None
+                self._set_files_rubberband(True)
                 return None
         except Exception as exc:  # noqa: BLE001 — surface in toast; cancel drag
             self._toast(str(exc)[:180])
             shutil.rmtree(staging, ignore_errors=True)
             self._drag_out_staging = None
+            self._set_files_rubberband(True)
             return None
         finally:
             self._drag_out_active = False
@@ -1790,11 +1843,16 @@ class DriveWindow(Adw.ApplicationWindow):
             self._toast(_("Drag-out download produced no local files"))
             shutil.rmtree(staging, ignore_errors=True)
             self._drag_out_staging = None
+            self._set_files_rubberband(True)
             return None
         gfiles = [Gio.File.new_for_path(str(path)) for path in local_files]
         return Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_list(gfiles))
 
+    def _on_drag_out_begin(self, _source, _drag) -> None:
+        self._set_files_rubberband(False)
+
     def _on_drag_out_end(self, _source, _drag, _delete_data) -> None:
+        self._set_files_rubberband(True)
         staging = self._drag_out_staging
         self._drag_out_staging = None
         if staging is None:
