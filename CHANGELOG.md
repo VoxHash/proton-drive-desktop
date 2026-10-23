@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.2] — 2026-10-23
+
+### Fixed
+
+- Delete / Backspace on the file list or grid runs the same Trash toolbar action as the current selection (move to trash, restore in Trash, or album actions in Photos)
+- Right-click selects the row under the pointer before opening the context menu (Ctrl adds to the selection), so Rename / Copy / Move / Properties / Trash apply to the clicked item in list and grid views
+
 ## [1.15.1] — 2026-10-23
 
 ### Fixed
