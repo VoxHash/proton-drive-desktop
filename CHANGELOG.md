@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.0] — 2026-10-23
+
+### Added
+
+- Drag-out download: drag selected files/folders from **My files** onto a local file manager folder; the app downloads via the official CLI transfer queue (`filesystem download`, rename conflicts) into a staging dir and offers a `Gdk.FileList` so the desktop copies into the drop path
+- Properties → Size for folders uses live `proton-drive filesystem size` (CLI 0.9.0+) with descendant count when present
+- CLI wrapper helpers: `filesystem_size`, `takeout_run`, `parse_filesystem_size_payload` (takeout UI deferred — see ROADMAP)
+
+### Changed
+
+- Documented against official Proton Drive CLI **0.9.0** (still no `mount` / account quota command; new `filesystem size` and `takeout run`)
+
 ## [1.14.2] — 2026-10-05
 
 ### Fixed

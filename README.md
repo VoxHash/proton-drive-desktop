@@ -2,13 +2,14 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/VoxHash/proton-drive-desktop?display_name=tag&sort=semver)](https://github.com/VoxHash/proton-drive-desktop/releases)
-[![CLI](https://img.shields.io/badge/proton--drive-0.8.0-6d4aff.svg)](https://proton.me/download/drive/cli/index.html)
+[![CLI](https://img.shields.io/badge/proton--drive-0.9.0-6d4aff.svg)](https://proton.me/download/drive/cli/index.html)
 [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](#installation)
 [![CI](https://img.shields.io/github/actions/workflow/status/VoxHash/proton-drive-desktop/ci.yml?branch=main&label=CI)](https://github.com/VoxHash/proton-drive-desktop/actions)
 
 Unofficial GTK4 / libadwaita desktop GUI for **Proton’s official Drive CLI**. Proton has no Linux Drive GUI yet. This app matches Drive’s My files / Photos / Shared / Trash layout and talks only to `proton-drive` already signed in on the system.
 
 Not affiliated with Proton AG. The app/tray icon is Proton’s official Drive mark from [ProtonDriveApps/android-drive](https://github.com/ProtonDriveApps/android-drive) (GPL-3.0-or-later).
+
 
 ## Features
 
@@ -18,8 +19,9 @@ Not affiliated with Proton AG. The app/tray icon is Proton’s official Drive ma
 - Share and invitations from the UI (`proton-drive sharing` / `invitation list`)
 - Upload, download, new folder, rename, copy, move, trash, restore, delete permanently, empty trash
 - Drag-and-drop upload onto My files (files and folders into the current remote folder)
+- Folder size in Properties via `proton-drive filesystem size` (CLI 0.9.0+)
 - Help and Settings (official Drive Help URL, live CLI account, Storage quota Unavailable until Proton’s CLI exposes it, CLI version vs Proton newer check, theme, language, download folder, always-on folder, CLI path, autostart)
-- Always-on folder pairs (official CLI 0.8.0 cannot FUSE-mount; multi-folder local ↔ `/my-files/...`; Guided setup; Pause / resume from Settings and tray; Activity history of recent passes)
+- Always-on folder pairs (official CLI 0.9.0 cannot FUSE-mount; multi-folder local ↔ `/my-files/...`; Guided setup; Pause / resume from Settings and tray; Activity history of recent passes)
 - **Interop, not replace** — FUSE / rclone / TrueNAS / Home Assistant are documented by link only (not vendored): see [docs/usage.md](docs/usage.md#interop-not-replace)
 - System tray on KDE/Ayatana: close hides, Quit from the tray exits; Pause / Resume sync when always-on is enabled
 - Uses the official CLI session in GNOME Keyring / Secret Service
@@ -106,7 +108,7 @@ Remaining blockers vs Pass/VPN: no Flathub listing, no signed Arch extra package
 
 ## Usage
 
-Open the primary menu (hamburger) for **Settings**, **Guided setup**, **Proton Drive Help**, and **About**. Settings → **Storage quota** probes live `proton-drive --help` and shows Unavailable on CLI 0.8.0 (no public quota command; no invented numbers). **Interop** (FUSE / rclone / TrueNAS / HA): [docs/usage.md](docs/usage.md#interop-not-replace) — link-only; not part of this repo. Browse folders with Enter or Open. Share (toolbar) invites people and manages public links via the official CLI. Pending invitations appear at the top of **Shared with me**. Rename, Copy, and Move use Adwaita dialogs and the live CLI. In Photos, New album / Rename / Add to album / Remove from album / Delete album call `proton-drive album`. In Trash, Delete permanently removes one selected item (`filesystem delete`) after confirmation; Empty trash still clears all of `/trash`. Upload and download use the portal file dialogs. Settings → **Enable always-on folder** / **Sync pairs** keeps one or more local directories in sync with `/my-files/...` using official CLI download/upload in a separate process (not a FUSE mount). **Pause sync** (Settings or tray) skips passes without disabling always-on. That Settings group also shows live **Worker**, **Last successful pass**, **Files last pass**, **Recent passes** (Activity history), and **Last error** from this app's worker status file — official `proton-drive` has no Activity log. Settings → **CLI version** / **CLI updates** run live `proton-drive version`. If Proton reports a newer CLI, Download and CLI Help open https://proton.me/download/drive/cli and https://proton.me/support/drive-cli; this app does not download Proton binaries. Settings → **Language** is System default, English, Русский, 简体中文, العربية, Italiano, Português, Español, 한국어, or 日本語; changing it saves `~/.config/proton-drive-desktop/gui.json` and restarts this Gio app so gettext reloads. Arabic uses a right-to-left GTK layout. Portuguese ships as gettext `pt` (covers `pt_BR` too). Sign-in, if needed, is `proton-drive auth login` in the browser.
+Open the primary menu (hamburger) for **Settings**, **Guided setup**, **Proton Drive Help**, and **About**. Settings → **Storage quota** probes live `proton-drive --help` and shows Unavailable on CLI 0.9.0 (no public quota command; no invented numbers). **Interop** (FUSE / rclone / TrueNAS / HA): [docs/usage.md](docs/usage.md#interop-not-replace) — link-only; not part of this repo. Browse folders with Enter or Open. Share (toolbar) invites people and manages public links via the official CLI. Pending invitations appear at the top of **Shared with me**. Rename, Copy, and Move use Adwaita dialogs and the live CLI. In Photos, New album / Rename / Add to album / Remove from album / Delete album call `proton-drive album`. In Trash, Delete permanently removes one selected item (`filesystem delete`) after confirmation; Empty trash still clears all of `/trash`. Upload and download use the portal file dialogs. Settings → **Enable always-on folder** / **Sync pairs** keeps one or more local directories in sync with `/my-files/...` using official CLI download/upload in a separate process (not a FUSE mount). **Pause sync** (Settings or tray) skips passes without disabling always-on. That Settings group also shows live **Worker**, **Last successful pass**, **Files last pass**, **Recent passes** (Activity history), and **Last error** from this app's worker status file — official `proton-drive` has no Activity log. Settings → **CLI version** / **CLI updates** run live `proton-drive version`. If Proton reports a newer CLI, Download and CLI Help open https://proton.me/download/drive/cli and https://proton.me/support/drive-cli; this app does not download Proton binaries. Settings → **Language** is System default, English, Русский, 简体中文, العربية, Italiano, Português, Español, 한국어, or 日本語; changing it saves `~/.config/proton-drive-desktop/gui.json` and restarts this Gio app so gettext reloads. Arabic uses a right-to-left GTK layout. Portuguese ships as gettext `pt` (covers `pt_BR` too). Sign-in, if needed, is `proton-drive auth login` in the browser.
 
 ## Configuration
 
@@ -116,7 +118,8 @@ Open the primary menu (hamburger) for **Settings**, **Guided setup**, **Proton D
 | Settings → Theme | Dark / Light / System | Dark |
 | Settings → Language | System default, English, or ru / zh_CN / ar / it / pt / es / ko / ja (native names; Arabic RTL; `pt` also matches pt_BR); restarts the app | System default |
 | Settings → Download folder | Where toolbar downloads are saved | `~/Downloads` |
-| Settings → Storage quota | Probes live `proton-drive --help` for a quota command; Unavailable on CLI 0.8.0 (no invented numbers) | Unavailable |
+| Settings → Storage quota | Probes live `proton-drive --help` for a quota command; Unavailable on CLI 0.9.0 (no invented numbers) | Unavailable |
+| Properties → Size (folders) | `proton-drive filesystem size` (CLI 0.9.0+) | Bytes + descendant count |
 | Settings → Always-on / Sync pairs | Enable, multi-folder local↔`/my-files/...` pairs, Pause sync, Guided setup, live Activity (worker + recent passes), autostart skip/merge worker (not FUSE) | `~/Proton Drive`, off until enabled |
 | Settings → Sync direction | Bidirectional (default), upload-only, or download-only (`gui.json` `sync_direction`) | Bidirectional |
 | Settings → CLI version / CLI updates | Live `proton-drive version` (current CLI vs whether Proton reports a newer one) | From the installed CLI |

@@ -4,7 +4,7 @@
 
 **Does this app store my Proton password?** No. The Proton account password never enters this process. Sign-in is `proton-drive auth login` (browser); the official CLI keeps the session in the OS keyring. An optional **public link** password in Share is only for `sharing set-url`, not account login. See [SECURITY.md](../SECURITY.md).
 
-**Does it sync like Windows?** Official CLI 0.8.0 still cannot FUSE-mount Drive and has no Activity log. Settings can keep an always-on folder updated with skip/merge `filesystem download` / `upload` in a separate process. That is a real directory, not a mount. Settings shows this app's worker activity (running/stopped, last pass, errors) from `sync-status.json`.
+**Does it sync like Windows?** Official CLI 0.9.0 still cannot FUSE-mount Drive and has no Activity log. Settings can keep an always-on folder updated with skip/merge `filesystem download` / `upload` in a separate process. That is a real directory, not a mount. Settings shows this app's worker activity (running/stopped, last pass, errors) from `sync-status.json`.
 
 **Where is Help?** Primary menu → Proton Drive Help, which opens https://proton.me/support/drive.
 
@@ -14,7 +14,7 @@
 
 **Why isn’t the always-on folder a FUSE mount?** Live `proton-drive --help` and ProtonDriveApps/sdk have no `mount` command. This repo does not ship FUSE or rclone. Optional third-party stacks you can install separately (link only; not forked here): [khaosdoctor/proton-drive-linux-fs](https://github.com/khaosdoctor/proton-drive-linux-fs) (FUSE), [stektus/monti](https://github.com/stektus/monti) (rclone GUI mounts), [tibo-develop/proton-drive-sync-for-linux](https://github.com/tibo-develop/proton-drive-sync-for-linux) (rclone bisync). See [Usage](usage.md#interop-not-replace).
 
-**Where is my storage quota in Settings?** Unavailable for now. Live official CLI 0.8.0 `--help` has no `quota`, `storage`, `usage`, or `account` command (only `auth`, `filesystem`, `sharing`, `invitation`, `album`, `photo`). Settings → **Storage quota** probes that help text and shows Unavailable — this app never invents used/total numbers. When Proton adds a public CLI command, the watch item in [ROADMAP.md](../ROADMAP.md) can grow a real UI.
+**Where is my storage quota in Settings?** Unavailable for now. Live official CLI 0.9.0 `--help` has no `quota`, `storage`, `usage`, or `account` command (auth, filesystem incl. size, sharing, invitation, album, photo, takeout — still no quota). Settings → **Storage quota** probes that help text and shows Unavailable — this app never invents used/total numbers. When Proton adds a public CLI command, the watch item in [ROADMAP.md](../ROADMAP.md) can grow a real UI.
 
 **Can I install it like Proton Pass or Proton VPN?** Pass is Flathub (`me.proton.Pass`). VPN is Arch extra (`pacman -S proton-vpn-gtk-app`). This app uses `./install.sh`, `make user-install`, or an optional Debian/Ubuntu `.deb` from GitHub Releases, plus a separate official CLI on PATH (source tarball + SHA256SUMS; optional AppImage / `.deb` still need host GTK and `proton-drive`). There is no Flathub listing yet.
 

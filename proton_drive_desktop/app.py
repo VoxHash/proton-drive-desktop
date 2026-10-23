@@ -7,7 +7,9 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
+import time
 from pathlib import Path
 
 import gi
@@ -39,6 +41,7 @@ from .cli import (
     member_role,
     node_name,
     node_size,
+    parse_filesystem_size_payload,
     parse_version_output,
     photo_cli_path,
 )
@@ -149,6 +152,27 @@ _NON_MOVABLE_KINDS = frozenset({"invitation", "day", "album"})
 def is_downloadable_kind(kind: str) -> bool:
     """True when toolbar Download can run proton-drive filesystem/photo download."""
     return kind not in _NON_DOWNLOADABLE_KINDS
+
+
+def drag_out_section_allowed(section: str) -> bool:
+    """Drag-out download is limited to My files (not Shared / Trash / Photos chrome)."""
+    return section == "/my-files"
+
+
+def filter_drag_out_items(section: str, items: list) -> list:
+    """Selected listing rows eligible for drag-out → local folder download."""
+    if not drag_out_section_allowed(section):
+        return []
+    out = []
+    for item in items:
+        kind = getattr(item, "kind", "")
+        path = getattr(item, "path", "")
+        if not is_downloadable_kind(str(kind)):
+            continue
+        if not str(path).startswith("/my-files"):
+            continue
+        out.append(item)
+    return out
 
 
 def is_movable_item(kind: str, path: str, section: str) -> bool:
@@ -562,6 +586,8 @@ class DriveWindow(Adw.ApplicationWindow):
         self._timeline_cache: list | None = None
         self._transfer_fatal = False
         self._last_download_folder: str | None = None
+        self._drag_out_staging: Path | None = None
+        self._drag_out_active = False
         self._window_persist_source = 0
         self._view_mode = normalize_view_mode(cfg.get("view_mode"))
         self.set_icon_name(APP_ICON_NAME)
@@ -793,6 +819,11 @@ class DriveWindow(Adw.ApplicationWindow):
             right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
             right_click.connect("pressed", self._on_item_context)
             view.add_controller(right_click)
+            drag = Gtk.DragSource.new()
+            drag.set_actions(Gdk.DragAction.COPY)
+            drag.connect("prepare", self._on_drag_out_prepare)
+            drag.connect("drag-end", self._on_drag_out_end)
+            view.add_controller(drag)
         self._item_popover: Gtk.Popover | None = None
         self._add_column(_("Name"), self._name_setup, self._name_bind, expand=True)
         self._add_column(_("Modified"), self._label_setup, self._modified_bind, width=170)
@@ -1067,6 +1098,9 @@ class DriveWindow(Adw.ApplicationWindow):
         return False
 
     def _on_transfer_finished(self, job: TransferJob, result: object, snap: QueueSnapshot) -> bool:
+        if self._drag_out_active and job.kind == "download":
+            self._sync_transfer_action_buttons(snap)
+            return False
         if job.kind in ("download", "photo_download") and isinstance(result, str):
             self._last_download_folder = result
             self._toast(_("Saved to {folder}").format(folder=result))
@@ -1093,6 +1127,10 @@ class DriveWindow(Adw.ApplicationWindow):
             self._transfer_fatal = False
             self.cancel_transfer_btn.set_visible(False)
             self.clear_queue_btn.set_visible(False)
+            return False
+        if self._drag_out_active:
+            self._set_busy(False)
+            self._sync_transfer_action_buttons()
             return False
         folder = self._last_download_folder
         self._last_download_folder = None
@@ -1682,6 +1720,92 @@ class DriveWindow(Adw.ApplicationWindow):
             return False
         self._start_upload(paths)
         return True
+
+    def _wait_transfers_idle(self, *, timeout_s: float = 3600.0) -> bool:
+        """Pump the main context until the transfer queue is idle (for drag-out)."""
+        deadline = time.monotonic() + timeout_s
+        ctx = GLib.MainContext.default()
+        while time.monotonic() < deadline:
+            snap = self.transfers.snapshot()
+            if snap.active is None and snap.pending_count == 0:
+                while ctx.pending():
+                    ctx.iteration(False)
+                snap = self.transfers.snapshot()
+                if snap.active is None and snap.pending_count == 0:
+                    return True
+            ctx.iteration(True)
+        return False
+
+    def _on_drag_out_prepare(self, _source, _x, _y) -> Gdk.ContentProvider | None:
+        """Download selected My files into a staging dir, then offer them as a FileList.
+
+        The file manager copies those local paths into the drop folder. Only the
+        current selection is downloaded (real ``filesystem download`` via the queue).
+        """
+        items = filter_drag_out_items(self.section, self._selected_items())
+        if not items:
+            return None
+        if self._drag_out_staging is not None:
+            shutil.rmtree(self._drag_out_staging, ignore_errors=True)
+            self._drag_out_staging = None
+        staging = Path(tempfile.mkdtemp(prefix="proton-drive-desktop-drag-"))
+        self._drag_out_staging = staging
+        dest = str(staging)
+        remotes = [item.path for item in items]
+        label = ngettext(
+            "Preparing drag-out download ({count} item)",
+            "Preparing drag-out download ({count} items)",
+            len(remotes),
+        ).format(count=len(remotes))
+
+        def runner(on_progress):
+            for remote in remotes:
+                self.cli.download(
+                    remote,
+                    dest,
+                    file_conflict="rename",
+                    folder_conflict="rename",
+                    on_progress=on_progress,
+                )
+            return dest
+
+        self._drag_out_active = True
+        try:
+            self._enqueue_transfer("download", label, runner)
+            if not self._wait_transfers_idle():
+                self._toast(_("Drag-out download timed out"))
+                shutil.rmtree(staging, ignore_errors=True)
+                self._drag_out_staging = None
+                return None
+        except Exception as exc:  # noqa: BLE001 — surface in toast; cancel drag
+            self._toast(str(exc)[:180])
+            shutil.rmtree(staging, ignore_errors=True)
+            self._drag_out_staging = None
+            return None
+        finally:
+            self._drag_out_active = False
+
+        local_files = sorted(p for p in staging.iterdir() if p.exists())
+        if not local_files:
+            self._toast(_("Drag-out download produced no local files"))
+            shutil.rmtree(staging, ignore_errors=True)
+            self._drag_out_staging = None
+            return None
+        gfiles = [Gio.File.new_for_path(str(path)) for path in local_files]
+        return Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_list(gfiles))
+
+    def _on_drag_out_end(self, _source, _drag, _delete_data) -> None:
+        staging = self._drag_out_staging
+        self._drag_out_staging = None
+        if staging is None:
+            return
+
+        def cleanup() -> bool:
+            shutil.rmtree(staging, ignore_errors=True)
+            return False
+
+        # Give the file manager time to copy before removing the staging tree.
+        GLib.timeout_add_seconds(90, cleanup)
 
     def _start_upload(self, paths: list[str]) -> None:
         if not paths:
@@ -2363,6 +2487,8 @@ class PropertiesDialog(Adw.Dialog):
 
     def __init__(self, window: DriveWindow, item: DriveItem) -> None:
         super().__init__()
+        self._window = window
+        self._size_row: Adw.ActionRow | None = None
         self.set_title(_("Properties"))
         self.set_content_width(460)
         toolbar = Adw.ToolbarView()
@@ -2380,10 +2506,13 @@ class PropertiesDialog(Adw.Dialog):
             is_shared=bool(item.node.get("isShared")),
             is_shared_by_url=bool(item.node.get("isSharedByUrl")),
         )
+        size_title = _("Size")
         for title, value in rows:
             row = Adw.ActionRow(title=title, subtitle=value)
             row.add_css_class("property")
             row.set_subtitle_selectable(True)
+            if title == size_title:
+                self._size_row = row
             group.add(row)
 
         page = Gtk.Box(
@@ -2396,6 +2525,31 @@ class PropertiesDialog(Adw.Dialog):
         page.append(group)
         toolbar.set_content(page)
         self.set_child(toolbar)
+
+        # CLI 0.9.0+ ``filesystem size`` for folders (listing has no folder byte size).
+        if item.kind == "folder" and self._size_row is not None:
+            self._size_row.set_subtitle(_("Calculating…"))
+            path = item.path
+
+            def work():
+                return window.cli.filesystem_size(path)
+
+            window._bg(work, self._on_folder_size, self._on_folder_size_error)
+
+    def _on_folder_size(self, data: object) -> None:
+        size, descendants = parse_filesystem_size_payload(data)
+        text = format_size(size)
+        if descendants is not None:
+            text = _("{size} · {count} items").format(size=text, count=descendants)
+        if self._size_row is not None:
+            self._size_row.set_subtitle(text)
+
+    def _on_folder_size_error(self, exc: BaseException) -> None:
+        if self._size_row is not None:
+            self._size_row.set_subtitle("—")
+        message = str(exc)[:120]
+        if message:
+            self._window._toast(message)
 
 
 class InvitationDialog(Adw.MessageDialog):
@@ -3292,7 +3446,7 @@ class SettingsDialog(Adw.PreferencesDialog):
         sync = Adw.PreferencesGroup(
             title=_("Always-on folder"),
             description=_(
-                "Official CLI 0.8.0 cannot FUSE-mount Drive and has no Activity log. "
+                "Official CLI 0.9.0 cannot FUSE-mount Drive and has no Activity log. "
                 "Enable keeps one or more local directories in sync with chosen /my-files "
                 "paths (or subtrees) via a niced filesystem download/upload worker, starts "
                 "that worker now, and turns on session autostart so it stays on after login. "
@@ -3626,7 +3780,7 @@ class SettingsDialog(Adw.PreferencesDialog):
             )
         else:
             self.quota_row.set_subtitle(
-                _("Unavailable — official CLI has no account/storage quota command (probed 0.8.0)")
+                _("Unavailable — official CLI has no account/storage quota command (probed 0.9.0)")
             )
 
     def _apply_cli_version(self, info: CliVersionInfo) -> None:

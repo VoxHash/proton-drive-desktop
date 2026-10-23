@@ -14,7 +14,7 @@ from proton_drive_desktop.app import (  # noqa: E402
     format_share_status,
     item_property_rows,
 )
-from proton_drive_desktop.cli import format_size, node_size  # noqa: E402
+from proton_drive_desktop.cli import format_size, node_size, parse_filesystem_size_payload  # noqa: E402
 
 
 def test_format_item_type() -> None:
@@ -99,10 +99,19 @@ def test_item_property_rows_link_share() -> None:
     assert rows["Share status"] == "Shared via link"
 
 
+def test_parse_filesystem_size_payload() -> None:
+    size, count = parse_filesystem_size_payload({"size": 2048, "numberOfDescendants": 3})
+    assert size == 2048
+    assert count == 3
+    assert parse_filesystem_size_payload(None) == (None, None)
+    assert parse_filesystem_size_payload({"size": "nope"}) == (None, None)
+
+
 if __name__ == "__main__":
     test_format_item_type()
     test_format_share_status()
     test_item_property_rows_file()
     test_item_property_rows_folder_unshared()
     test_item_property_rows_link_share()
+    test_parse_filesystem_size_payload()
     print("properties checks passed")

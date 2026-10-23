@@ -7,6 +7,7 @@ from proton_drive_desktop.cli import ProtonDriveCli
 cli = ProtonDriveCli()
 print(cli.version_info())
 print([n["name"] for n in cli.list("/my-files")])
+print(cli.filesystem_size("/my-files"))  # CLI 0.9.0+: size + numberOfDescendants
 print(cli.invitation_list())
 print(cli.sharing_status("/my-files/Business"))
 cli.rename("/my-files/old", "new")
@@ -19,6 +20,7 @@ cli.album_remove_photo("/albums/Summer", ["/photos/PHOTO-UID"])
 # cli.album_delete("/albums/Summer", save=True)
 # cli.delete("/trash/pdl-del-sample")  # one already-trashed item
 # cli.empty_trash()  # permanently deletes every item in /trash
+# cli.takeout_run(str(Path.home() / "DriveTakeout"), include=["my-files"])  # CLI 0.9.0+; no GUI yet
 ```
 
 Always-on folder worker (separate process, not FUSE):

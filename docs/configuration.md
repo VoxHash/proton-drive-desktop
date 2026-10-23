@@ -14,7 +14,7 @@
 | Settings → Enable always-on folder | Starts the niced CLI worker now and turns on session autostart |
 | Settings → Worker / Last successful pass / Files last pass / Recent passes / Last error | Live activity from this app's worker lock and `sync-status.json` (bounded `history` of last passes; official CLI has no Activity log) |
 | Settings → Guided setup | Short Adw welcome flow: CLI SHA-512 verify, preview, seed/assume-synced, enable always-on (`gui.json` `setup_completed`) |
-| Settings → Storage quota | Probes live `proton-drive --help` for an account/storage quota command; CLI 0.8.0 has none → Unavailable (no invented numbers) |
+| Settings → Storage quota | Probes live `proton-drive --help` for an account/storage quota command; CLI 0.9.0 has none → Unavailable (no invented numbers) |
 | Settings → CLI path | File picker for the `proton-drive` binary |
 | Settings → CLI version / CLI updates | Live `proton-drive version` (current CLI vs whether Proton reports a newer one) |
 | Settings → Start with this session | `~/.config/autostart/io.github.voxhash.ProtonDriveDesktop.desktop` |
@@ -28,4 +28,4 @@
 | `~/.config/proton-drive-desktop/sync-delta.json` | Per-pair local delta fingerprints (`version` 2 store with `pairs.<id>`); legacy single-pair files migrate on load |
 | `~/.config/proton-drive-desktop/sync.lock` | Held while a niced worker pass is running |
 
-Official CLI 0.8.0 cannot FUSE-mount Drive. Always-on sync uses real local directories, not a mount.
+Official CLI 0.9.0 cannot FUSE-mount Drive. Always-on sync uses real local directories, not a mount.
