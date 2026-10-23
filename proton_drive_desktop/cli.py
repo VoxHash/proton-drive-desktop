@@ -434,6 +434,17 @@ def format_size(num: int | None) -> str:
     return f"{num} B"
 
 
+def parse_filesystem_size_payload(data: Any) -> tuple[int | None, int | None]:
+    """Extract ``(size_bytes, number_of_descendants)`` from ``filesystem size -j``."""
+    if not isinstance(data, dict):
+        return None, None
+    size = data.get("size")
+    descendants = data.get("numberOfDescendants")
+    size_i = size if isinstance(size, int) else None
+    desc_i = descendants if isinstance(descendants, int) else None
+    return size_i, desc_i
+
+
 class ProtonDriveCli:
     def __init__(self, binary: str | None = None) -> None:
         self.binary = binary or find_binary()
@@ -731,6 +742,29 @@ class ProtonDriveCli:
         if isinstance(data, dict):
             return data
         raise CliError(f"Unexpected info payload for {path}")
+
+    def filesystem_size(self, path: str) -> dict[str, Any]:
+        """Folder size via official ``filesystem size`` (CLI 0.9.0+).
+
+        Returns ``size`` bytes and ``numberOfDescendants`` when present.
+        """
+        data = self.run(["filesystem", "size", path], timeout=600)
+        if isinstance(data, dict):
+            return data
+        raise CliError(f"Unexpected size payload for {path}")
+
+    def takeout_run(self, local_folder: str, *, include: list[str]) -> Any:
+        """Offline account export via official ``takeout run`` (CLI 0.9.0+).
+
+        Requires at least one ``--include`` section. Does not change the account.
+        """
+        if not include:
+            raise CliError("takeout run requires at least one --include section")
+        args: list[str] = ["takeout", "run"]
+        for section in include:
+            args.extend(["-i", section])
+        args.append(local_folder)
+        return self.run(args, timeout=7200)
 
     def photo_timeline(self, load_details: bool = False) -> list[dict[str, Any]]:
         args = ["photo", "timeline"]

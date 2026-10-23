@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.15.0" date="2026-10-23">
+      <description>
+        <p>Drag selected My files out of the listing onto a local folder to download via the official CLI transfer queue. Properties uses CLI 0.9.0 filesystem size for folders. Documented takeout run and remaining CLI gaps.</p>
+      </description>
+    </release>
     <release version="1.14.2" date="2026-10-05">
       <description>
         <p>CI packaging smoke accepts dpkg-deb control/data members compressed with zstd (.tar.zst), matching modern Ubuntu runners.</p>

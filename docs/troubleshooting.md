@@ -10,7 +10,7 @@
 
 **A newer CLI is available** — Settings → Download opens https://proton.me/download/drive/cli. Replace the binary on this machine yourself. This GUI does not download Proton binaries.
 
-**Always-on folder did not appear** — official CLI 0.8.0 cannot FUSE-mount. Enable Settings → Enable always-on folder and pick a directory. The worker writes `~/.config/proton-drive-desktop/sync-status.json`. Open Settings to see Worker (running/stopped), last successful pass, files copied last pass, and last error.
+**Always-on folder did not appear** — official CLI 0.9.0 cannot FUSE-mount. Enable Settings → Enable always-on folder and pick a directory. The worker writes `~/.config/proton-drive-desktop/sync-status.json`. Open Settings to see Worker (running/stopped), last successful pass, files copied last pass, and last error.
 
 **Always-on folder shows an error** — Settings → Last error is the last failure from this app's niced worker, not a Proton CLI Activity log. Fix the listed download/upload path, then Sync now.
 

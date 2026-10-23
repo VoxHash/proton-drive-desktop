@@ -1,6 +1,6 @@
 # Installation
 
-Dependencies: GTK 4, libadwaita, Python 3.12+, official `proton-drive` CLI 0.8.0, libsecret.
+Dependencies: GTK 4, libadwaita, Python 3.12+, official `proton-drive` CLI 0.9.0, libsecret.
 
 ## One-shot installer
 

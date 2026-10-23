@@ -24,7 +24,7 @@ The always-on folder worker is a separate niced `python3 -m proton_drive_desktop
 
 Settings and About parse live `proton-drive version` (Proton fetches https://proton.me/download/drive/cli/version.json itself). This GUI only displays that result and links to Proton’s CLI download page; it does not fetch or store Proton binaries.
 
-Settings → Storage quota probes live `proton-drive --help` via `cli_help_exposes_storage_quota`. CLI 0.8.0 lists no account/storage quota command, so the row stays Unavailable. This app does not scrape Proton account pages or invent used/total bytes.
+Settings → Storage quota probes live `proton-drive --help` via `cli_help_exposes_storage_quota`. CLI 0.9.0 lists no account/storage quota command, so the row stays Unavailable. This app does not scrape Proton account pages or invent used/total bytes.
 
 ## Interop, not replace (out of process)
 

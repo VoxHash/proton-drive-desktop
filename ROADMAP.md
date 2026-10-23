@@ -45,13 +45,14 @@
 ## Priority: desktop UX parity
 
 - [x] Drag-and-drop upload onto the file view (files and folders in My files)
+- [x] Drag-out download from My files onto a local folder (GTK4 DragSource + transfer queue + `filesystem download`)
 - [x] Transfer progress for upload/download (best-effort scrape of CLI spinner text until Proton ships JSON progress)
 - [x] In-memory transfer queue with one active CLI process and cancel of the owned process tree
 - [x] In-list search / filter (Ctrl+F) over the current folder listing
 - [x] Clickable breadcrumb trail for the current remote path
 - [x] List / grid view toggle with extension-aware file-type icons
 - [x] Multi-select bulk trash / download / move
-- [x] Read-only Properties dialog (name, type, size, modified, share status, full path)
+- [x] Read-only Properties dialog (name, type, size, modified, share status, full path; folder size via CLI 0.9.0 `filesystem size`)
 - [x] Remember window size and last-visited folder across launches
 - [x] Desktop notifications (`notify-send`) when the always-on worker fails or auth expires
 
@@ -88,8 +89,9 @@
 | --- | --- |
 | AUR publish (`packaging/arch/PKGBUILD`) | Open — PKGBUILD exists; not submitted |
 | Flathub listing | Open — CLI must remain external |
-| Storage / quota watch in Settings | Blocked — official CLI 0.8.0 has no quota/storage/usage API |
-| Official CLI `mount` / Proton Sync | Blocked — wait for Proton |
+| Storage / quota watch in Settings | Blocked — official CLI 0.9.0 still has no quota/storage/usage API |
+| Official CLI `mount` / Proton Sync | Blocked — wait for Proton (0.9.0 `--help` has no `mount`) |
+| Account takeout UI (`takeout run`) | Open — CLI 0.9.0 ships `takeout run -i … localFolder`; wrapper exists; no Settings wizard yet |
 | Official Proton Linux GUI | Blocked — replace this app when Proton ships it |
 
 ## Priority: watch Proton / ecosystem (do not reimplement)
@@ -97,5 +99,8 @@
 - [ ] Adopt official CLI `mount` / Proton Sync if they ship it
 - [ ] Replace with Proton's official Linux GUI when they ship it
 - [x] Document optional interoperability with external FUSE / rclone / TrueNAS / Home Assistant — link and recipe pointers only; do not fork or productize those niches (see `docs/usage.md#interop-not-replace`, `docs/faq.md`, `docs/architecture.md`, README)
-- [ ] Account / storage quota UI if/when the official CLI exposes it — **blocked on Proton**: live `proton-drive` 0.8.0 `--help` has no `quota` / `storage` / `usage` / `account` command; Settings → Storage quota shows Unavailable after probing help; no fake used/total numbers
+- [ ] Account / storage quota UI if/when the official CLI exposes it — **blocked on Proton**: live `proton-drive` 0.9.0 `--help` has no `quota` / `storage` / `usage` / `account` command; Settings → Storage quota shows Unavailable after probing help; no fake used/total numbers
+- [ ] Settings / Help wizard for official `takeout run` (include my-files / devices / photos / revisions) — deferred until a clear offline-export UX lands; CLI wrapper `takeout_run` is ready
+- [x] Folder size in Properties via `filesystem size` (CLI 0.9.0+)
+- [ ] JSON progress events from Proton for transfers (still best-effort spinner scrape on 0.9.0)
 
