@@ -2,6 +2,10 @@
 
 Launch `proton-drive-desktop`. Sidebar sections map to CLI paths `/my-files`, `/photos`, `/shared-with-me`, `/trash`. Enter opens a folder. Download writes to the folder in Settings (default `~/Downloads`). In **My files**, drag and drop local files or folders onto the file view to upload into the current remote folder (`filesystem upload`). Use the Download toolbar action for downloads. Rubber-band multi-select works from empty gaps between items.
 
+Optional **drag out** to a local file manager (Settings → Downloads → **Enable drag files to file manager**, **off by default**): in My files, the first drag stages a real CLI download into a temp folder via the transfer queue; when the strip finishes, drag the same selection again to offer `Gdk.FileList`. `prepare` never blocks or pumps GDK. Still risky on some compositors — if the copy lands only under `/tmp` staging, use toolbar Download instead.
+
+**Account takeout** (Settings → Account takeout, or Help → Account takeout) runs official `proton-drive takeout run` with chosen sections (`my-files` / `devices` / `photos` / `revisions`) into a local folder. It does not change your account.
+
 Toolbar uploads/downloads run in a parallel queue (default **2** official CLI processes; Settings → Downloads → Parallel transfers, 1–4). You can start another transfer to a different path while the first runs and keep browsing sections; progress, Cancel, and Clear queue sit in the bottom transfer strip (not a full-page spinner). Set parallel slots to **1** if the CLI reports cache lock errors.
 
 **Photos** lists albums from `proton-drive album list` above the capture-date timeline. New album (the folder-new toolbar button in Photos) runs `album create`. Rename an album with the toolbar, F2, or right-click (`album update -n`). Delete album asks for confirmation then runs `album delete -s` (photos stay in the timeline). Open a day, select a photo, then Copy / Add to album (`album add-photo` with `/photos/{uid}`). Inside an album, Remove from album or the trash button runs `album remove-photo`.

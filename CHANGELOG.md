@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.17.0] — 2026-10-23
+
+### Added
+
+- Settings / Help **Account takeout** wizard: choose official CLI sections (`my-files`, `devices`, `photos`, `revisions`), pick a local folder, run real `proton-drive takeout run` (no fake data; does not change the account)
+- Opt-in **drag files to file manager** from My files (Settings → Downloads, **default OFF**): first drag stages a download via the transfer queue; second drag offers `Gdk.FileList` from staging. `DragSource::prepare` never blocks or pumps GDK; rubberband is disabled while pressing an item (empty-space multi-select unchanged)
+
+### Changed
+
+- Documented residual drag-out risk (some compositors/file managers may leave copies under `/tmp` staging — use toolbar Download if that happens)
+- ROADMAP: takeout wizard and opt-in drag-out marked done with caveats
+
 ## [1.16.0] — 2026-10-23
 
 ### Added
@@ -199,6 +211,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First GTK4 GUI for Proton's official Drive CLI on Linux
 - Live account listing, upload/download, trash, new folder
 
+[1.17.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.17.0
 [1.16.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.16.0
 [1.15.3]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.3
 [1.15.2]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.2

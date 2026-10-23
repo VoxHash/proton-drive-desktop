@@ -19,8 +19,10 @@ Not affiliated with Proton AG. The app/tray icon is Proton’s official Drive ma
 - Upload, download, new folder, rename, copy, move, trash, restore, delete permanently, empty trash
 - Parallel toolbar transfers (default 2 concurrent official CLI processes; Settings 1–4) while browsing; bottom progress strip
 - Drag-and-drop upload onto My files (files and folders into the current remote folder)
+- Opt-in drag-out download from My files to a file manager (Settings, **default OFF**; stage then `Gdk.FileList` — still risky on some compositors)
+- Account takeout wizard (Settings / Help) wrapping official `proton-drive takeout run`
 - Folder size in Properties via `proton-drive filesystem size` (CLI 0.9.0+)
-- Help and Settings (official Drive Help URL, live CLI account, Storage quota Unavailable until Proton’s CLI exposes it, CLI version vs Proton newer check, theme, language, download folder, parallel transfers, always-on folder, CLI path, autostart)
+- Help and Settings (official Drive Help URL, live CLI account, Storage quota Unavailable until Proton’s CLI exposes it, CLI version vs Proton newer check, theme, language, download folder, parallel transfers, drag-out toggle, account takeout, always-on folder, CLI path, autostart)
 - Always-on folder pairs (official CLI 0.9.0 cannot FUSE-mount; multi-folder local ↔ `/my-files/...`; Guided setup; Pause / resume from Settings and tray; Activity history of recent passes)
 - **Interop, not replace** — FUSE / rclone / TrueNAS / Home Assistant are documented by link only (not vendored): see [docs/usage.md](docs/usage.md#interop-not-replace)
 - System tray on KDE/Ayatana: close hides, Quit from the tray exits; Pause / Resume sync when always-on is enabled
@@ -119,6 +121,8 @@ Open the primary menu (hamburger) for **Settings**, **Guided setup**, **Proton D
 | Settings → Language | System default, English, or ru / zh_CN / ar / it / pt / es / ko / ja (native names; Arabic RTL; `pt` also matches pt_BR); restarts the app | System default |
 | Settings → Download folder | Where toolbar downloads are saved | `~/Downloads` |
 | Settings → Parallel transfers | Max concurrent toolbar upload/download CLI processes (`gui.json` `transfer_max_concurrency`) | 2 (range 1–4) |
+| Settings → Enable drag files to file manager | Opt-in My files → local FM drag-out (`gui.json` `drag_out_enabled`) | Off |
+| Settings / Help → Account takeout | Wizard for official `takeout run` (sections + folder) | — |
 | Settings → Storage quota | Probes live `proton-drive --help` for a quota command; Unavailable on CLI 0.9.0 (no invented numbers) | Unavailable |
 | Properties → Size (folders) | `proton-drive filesystem size` (CLI 0.9.0+) | Bytes + descendant count |
 | Settings → Always-on / Sync pairs | Enable, multi-folder local↔`/my-files/...` pairs, Pause sync, Guided setup, live Activity (worker + recent passes), autostart skip/merge worker (not FUSE) | `~/Proton Drive`, off until enabled |

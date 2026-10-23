@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 from pathlib import Path
 
@@ -39,9 +40,11 @@ from .cli import (
     member_role,
     node_name,
     node_size,
+    normalize_takeout_includes,
     parse_filesystem_size_payload,
     parse_version_output,
     photo_cli_path,
+    TAKEOUT_INCLUDE_CHOICES,
 )
 from .config import (
     SYNC_INTERVAL_SECONDS_MAX,
@@ -153,6 +156,39 @@ _NON_MOVABLE_KINDS = frozenset({"invitation", "day", "album"})
 def is_downloadable_kind(kind: str) -> bool:
     """True when toolbar Download can run proton-drive filesystem/photo download."""
     return kind not in _NON_DOWNLOADABLE_KINDS
+
+
+def drag_out_section_allowed(section: str) -> bool:
+    """Drag-out download is limited to My files (not Shared / Trash / Photos chrome)."""
+    return section == "/my-files"
+
+
+def filter_drag_out_items(section: str, items: list) -> list:
+    """Selected listing rows eligible for drag-out → local folder download."""
+    if not drag_out_section_allowed(section):
+        return []
+    out = []
+    for item in items:
+        kind = getattr(item, "kind", "")
+        path = getattr(item, "path", "")
+        if not is_downloadable_kind(str(kind)):
+            continue
+        if not str(path).startswith("/my-files"):
+            continue
+        out.append(item)
+    return out
+
+
+def drag_out_selection_key(items: list) -> tuple[str, ...]:
+    """Stable fingerprint for a drag-out selection (paths only)."""
+    return tuple(sorted(str(getattr(item, "path", "")) for item in items if getattr(item, "path", "")))
+
+
+def collect_staged_paths(staging: Path) -> list[Path]:
+    """Top-level children produced by a drag-out staging download."""
+    if not staging.is_dir():
+        return []
+    return sorted(p for p in staging.iterdir() if p.exists())
 
 
 def key_requests_trash(keyval: int) -> bool:
@@ -585,6 +621,10 @@ class DriveWindow(Adw.ApplicationWindow):
         self._timeline_cache: list | None = None
         self._transfer_fatal = False
         self._last_download_folder: str | None = None
+        self._drag_out_staging: Path | None = None
+        self._drag_out_ready_key: tuple[str, ...] | None = None
+        self._drag_out_pending_key: tuple[str, ...] | None = None
+        self._drag_out_gesture_active = False
         self._window_persist_source = 0
         self._view_mode = normalize_view_mode(cfg.get("view_mode"))
         self.set_icon_name(APP_ICON_NAME)
@@ -835,6 +875,20 @@ class DriveWindow(Adw.ApplicationWindow):
             right_click = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
             right_click.connect("pressed", self._on_item_context)
             view.add_controller(right_click)
+            # Nautilus-style: rubberband steals button1 from DragSource. Disable it
+            # while pressing a row/cell so opt-in drag-out can claim the sequence.
+            item_press = Gtk.GestureClick(button=Gdk.BUTTON_PRIMARY)
+            item_press.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+            item_press.connect("pressed", self._on_files_item_pressed)
+            item_press.connect("released", self._on_files_item_released)
+            item_press.connect("cancel", self._on_files_item_gesture_cancel)
+            view.add_controller(item_press)
+            drag = Gtk.DragSource.new()
+            drag.set_actions(Gdk.DragAction.COPY)
+            drag.connect("prepare", self._on_drag_out_prepare)
+            drag.connect("drag-begin", self._on_drag_out_begin)
+            drag.connect("drag-end", self._on_drag_out_end)
+            view.add_controller(drag)
         self._item_popover: Gtk.Popover | None = None
         self._add_column(_("Name"), self._name_setup, self._name_bind, expand=True)
         self._add_column(_("Modified"), self._label_setup, self._modified_bind, width=170)
@@ -1133,6 +1187,10 @@ class DriveWindow(Adw.ApplicationWindow):
         return False
 
     def _on_transfer_finished(self, job: TransferJob, result: object, snap: QueueSnapshot) -> bool:
+        if job.kind == "drag_out":
+            self._on_drag_out_stage_finished(result)
+            self._sync_transfer_action_buttons(snap)
+            return False
         if job.kind in ("download", "photo_download") and isinstance(result, str):
             self._last_download_folder = result
             self._toast(_("Saved to {folder}").format(folder=result))
@@ -1143,6 +1201,8 @@ class DriveWindow(Adw.ApplicationWindow):
 
     def _on_transfer_error(self, job: TransferJob, exc: BaseException, snap: QueueSnapshot) -> bool:
         self._sync_transfer_action_buttons(snap)
+        if job.kind == "drag_out":
+            self._on_drag_out_stage_failed(exc)
         if isinstance(exc, TransferCancelled):
             self._toast(_("Transfer cancelled"))
             return False
@@ -1152,7 +1212,8 @@ class DriveWindow(Adw.ApplicationWindow):
             self.transfers.cancel_active()
             self._fail(exc)
             return False
-        self._toast(str(exc)[:180])
+        if job.kind != "drag_out":
+            self._toast(str(exc)[:180])
         return False
 
     def _on_transfers_idle(self) -> bool:
@@ -1761,6 +1822,189 @@ class DriveWindow(Adw.ApplicationWindow):
             return False
         self._start_upload(paths)
         return True
+
+    def _drag_out_enabled(self) -> bool:
+        return bool(load_config().get("drag_out_enabled"))
+
+    def _set_files_rubberband(self, enabled: bool) -> None:
+        """Toggle rubberband on list + grid (Nautilus workaround vs DragSource)."""
+        self.column.set_enable_rubberband(enabled)
+        self.grid.set_enable_rubberband(enabled)
+
+    def _pointer_on_files_item(self, view: Gtk.Widget, x: float, y: float) -> bool:
+        """True when (x, y) hits a row/cell child rather than empty view chrome."""
+        return self._files_position_at(view, x, y) >= 0
+
+    def _clear_drag_out_staging(self, *, restore_rubberband: bool = False) -> None:
+        staging = self._drag_out_staging
+        self._drag_out_staging = None
+        self._drag_out_ready_key = None
+        self._drag_out_pending_key = None
+        if restore_rubberband and not self._drag_out_gesture_active:
+            self._set_files_rubberband(True)
+        if staging is None:
+            return
+
+        def cleanup() -> bool:
+            shutil.rmtree(staging, ignore_errors=True)
+            return False
+
+        GLib.idle_add(cleanup)
+
+    def _on_files_item_pressed(self, gesture, _n_press, x, y) -> None:
+        if not self._drag_out_enabled():
+            return
+        view = gesture.get_widget()
+        if view is not None and self._pointer_on_files_item(view, x, y):
+            self._drag_out_gesture_active = True
+            self._set_files_rubberband(False)
+
+    def _on_files_item_released(self, _gesture, _n_press, _x, _y) -> None:
+        self._drag_out_gesture_active = False
+        if self._drag_out_pending_key is None:
+            self._set_files_rubberband(True)
+
+    def _on_files_item_gesture_cancel(self, _gesture, *_args) -> None:
+        self._drag_out_gesture_active = False
+        if self._drag_out_pending_key is None:
+            self._set_files_rubberband(True)
+
+    def _start_drag_out_stage(self, items: list, key: tuple[str, ...]) -> None:
+        """Queue a real filesystem download into a staging dir (never blocks the UI)."""
+        if self._drag_out_pending_key == key:
+            return
+        if self._drag_out_staging is not None:
+            old = self._drag_out_staging
+            self._drag_out_staging = None
+            self._drag_out_ready_key = None
+
+            def cleanup_old() -> bool:
+                shutil.rmtree(old, ignore_errors=True)
+                return False
+
+            GLib.idle_add(cleanup_old)
+        staging = Path(tempfile.mkdtemp(prefix="proton-drive-desktop-drag-"))
+        try:
+            (staging / ".proton-drive-desktop-drag-key").write_text(
+                "\n".join(key) + "\n", encoding="utf-8"
+            )
+        except OSError:
+            pass
+        self._drag_out_staging = staging
+        self._drag_out_pending_key = key
+        self._drag_out_ready_key = None
+        remotes = [str(item.path) for item in items]
+        dest = str(staging)
+        label = ngettext(
+            "Preparing drag-out download ({count} item)",
+            "Preparing drag-out download ({count} items)",
+            len(remotes),
+        ).format(count=len(remotes))
+
+        def runner(on_progress):
+            for remote in remotes:
+                self.cli.download(
+                    remote,
+                    dest,
+                    file_conflict="rename",
+                    folder_conflict="rename",
+                    on_progress=on_progress,
+                )
+            return dest
+
+        self._enqueue_transfer("drag_out", label, runner)
+
+    def _read_drag_out_stage_key(self, staging: Path) -> tuple[str, ...] | None:
+        marker = staging / ".proton-drive-desktop-drag-key"
+        try:
+            raw = marker.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return None
+        stored = tuple(line.strip() for line in raw if line.strip())
+        return stored or None
+
+    def _on_drag_out_stage_finished(self, result: object) -> None:
+        pending = self._drag_out_pending_key
+        self._drag_out_pending_key = None
+        staging = self._drag_out_staging
+        if not isinstance(result, str) or staging is None or Path(result) != staging:
+            self._toast(_("Drag-out download finished with unexpected path"))
+            self._clear_drag_out_staging(restore_rubberband=True)
+            return
+        local_files = [
+            p
+            for p in collect_staged_paths(staging)
+            if p.name != ".proton-drive-desktop-drag-key"
+        ]
+        if not local_files:
+            self._toast(_("Drag-out download produced no local files"))
+            self._clear_drag_out_staging(restore_rubberband=True)
+            return
+        self._drag_out_ready_key = self._read_drag_out_stage_key(staging) or pending
+        self._toast(_("Drag-out ready — drag the selection onto a folder again"))
+
+    def _on_drag_out_stage_failed(self, exc: BaseException) -> None:
+        self._drag_out_pending_key = None
+        self._toast(str(exc)[:180])
+        self._clear_drag_out_staging(restore_rubberband=True)
+
+    def _on_drag_out_prepare(self, _source, _x, _y) -> Gdk.ContentProvider | None:
+        """Offer staged local files as ``Gdk.FileList`` — never block or pump GDK here.
+
+        GTK4 ``DragSource::prepare`` must return a content provider synchronously.
+        Downloads run on the transfer queue after the first gesture; when staging is
+        ready, a second drag returns ``FileList`` immediately. Opt-in via Settings.
+        """
+        if not self._drag_out_enabled():
+            return None
+        items = filter_drag_out_items(self.section, self._selected_items())
+        if not items:
+            return None
+        self._set_files_rubberband(False)
+        key = drag_out_selection_key(items)
+        staging = self._drag_out_staging
+        if (
+            self._drag_out_ready_key == key
+            and staging is not None
+            and self._drag_out_pending_key is None
+        ):
+            local_files = [
+                p
+                for p in collect_staged_paths(staging)
+                if p.name != ".proton-drive-desktop-drag-key"
+            ]
+            if local_files:
+                gfiles = [Gio.File.new_for_path(str(path)) for path in local_files]
+                return Gdk.ContentProvider.new_for_value(Gdk.FileList.new_from_list(gfiles))
+        if self._drag_out_pending_key == key:
+            self._toast(_("Still downloading for drag-out…"))
+            return None
+        self._start_drag_out_stage(items, key)
+        self._toast(
+            _("Downloading for drag-out… When the transfer finishes, drag again onto a folder.")
+        )
+        return None
+
+    def _on_drag_out_begin(self, _source, _drag) -> None:
+        self._set_files_rubberband(False)
+
+    def _on_drag_out_end(self, _source, _drag, _delete_data) -> None:
+        self._drag_out_gesture_active = False
+        self._set_files_rubberband(True)
+        staging = self._drag_out_staging
+        self._drag_out_staging = None
+        self._drag_out_ready_key = None
+        if staging is None:
+            return
+
+        def cleanup() -> bool:
+            shutil.rmtree(staging, ignore_errors=True)
+            return False
+
+        # Give the file manager time to copy before removing the staging tree.
+        # Residual risk: some compositors/FMs mishandle FileList and leave files only
+        # under the staging path — prefer toolbar Download if that happens (toggle off by default).
+        GLib.timeout_add_seconds(90, cleanup)
 
     def _files_position_at(self, view: Gtk.Widget, x: float, y: float) -> int:
         """Return MultiSelection index for the list/grid item under (x, y), or -1."""
@@ -2866,6 +3110,7 @@ class DriveApp(Adw.Application):
         help_section.append(_("Proton Drive Help"), "app.help")
         help_section.append(_("Drive CLI Help"), "app.cli-help")
         help_section.append(_("Guided setup"), "app.guided-setup")
+        help_section.append(_("Account takeout…"), "app.takeout")
         help_section.append(_("Open CLI logs"), "app.logs")
         menu.append_section(None, help_section)
         about = Gio.Menu()
@@ -2880,6 +3125,7 @@ class DriveApp(Adw.Application):
         actions = {
             "preferences": self._on_preferences,
             "guided-setup": self._on_guided_setup,
+            "takeout": self._on_takeout,
             "open-browser": lambda *_: self._open_url(DRIVE_WEB_URL),
             "open-sync": self._on_open_sync,
             "help": lambda *_: self._open_url(HELP_URL),
@@ -2948,10 +3194,19 @@ class DriveApp(Adw.Application):
     def _on_guided_setup(self, *_args) -> None:
         self._present_guided_setup()
 
+    def _on_takeout(self, *_args) -> None:
+        self._present_takeout()
+
     def _present_guided_setup(self) -> bool:
         if self._window is None:
             return False
         GuidedSetupDialog(self._window).present()
+        return False
+
+    def _present_takeout(self) -> bool:
+        if self._window is None:
+            return False
+        TakeoutWizardDialog(self._window).present()
         return False
 
     def set_sync_paused(self, paused: bool) -> None:
@@ -3226,6 +3481,126 @@ def _set_autostart(enabled: bool) -> None:
     )
 
 
+class TakeoutWizardDialog(Adw.MessageDialog):
+    """Settings / Help wizard wrapping official ``proton-drive takeout run`` (CLI 0.9.0+).
+
+    Real offline export only — no fake progress. Does not change the Proton account.
+    Call ``present()`` with no parent (same as GuidedSetupDialog).
+    """
+
+    def __init__(self, window: DriveWindow) -> None:
+        super().__init__(
+            transient_for=window,
+            heading=_("Account takeout"),
+            body=_(
+                "Export an offline copy of your account with the official CLI "
+                "(takeout run). Nothing in your Drive account is changed. "
+                "Proton Docs/Sheets are not supported yet. Pick at least one "
+                "section and a local folder, then Export."
+            ),
+        )
+        self.window = window
+        self._folder = str(Path.home() / "ProtonDriveTakeout")
+        self._checks: dict[str, Gtk.CheckButton] = {}
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        box.set_margin_top(8)
+        sections = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        labels = {
+            "my-files": _("My files"),
+            "devices": _("Devices"),
+            "photos": _("Photos"),
+            "revisions": _("File revisions (all versions)"),
+        }
+        for key in TAKEOUT_INCLUDE_CHOICES:
+            check = Gtk.CheckButton(label=labels.get(key, key))
+            if key == "my-files":
+                check.set_active(True)
+            self._checks[key] = check
+            sections.append(check)
+        box.append(sections)
+
+        folder_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self._folder_label = Gtk.Label(
+            label=self._folder,
+            xalign=0,
+            hexpand=True,
+            ellipsize=Pango.EllipsizeMode.MIDDLE,
+        )
+        choose = Gtk.Button(label=_("Choose folder"))
+        choose.connect("clicked", self._choose_folder)
+        folder_row.append(self._folder_label)
+        folder_row.append(choose)
+        box.append(folder_row)
+        self.set_extra_child(box)
+
+        self.add_response("cancel", _("Cancel"))
+        self.add_response("run", _("Export"))
+        self.set_default_response("run")
+        self.set_response_appearance("run", Adw.ResponseAppearance.SUGGESTED)
+        self.connect("response", self._on_response)
+
+    def _selected_includes(self) -> list[str]:
+        chosen = [key for key, check in self._checks.items() if check.get_active()]
+        return normalize_takeout_includes(chosen)
+
+    def _choose_folder(self, *_args) -> None:
+        dialog = Gtk.FileDialog(title=_("Takeout destination folder"))
+        dialog.select_folder(self.window, None, self._on_folder_chosen)
+
+    def _on_folder_chosen(self, dialog, result) -> None:
+        try:
+            folder = dialog.select_folder_finish(result)
+        except GLib.Error:
+            return
+        if folder is None:
+            return
+        path = folder.get_path()
+        if not path:
+            return
+        self._folder = path
+        self._folder_label.set_text(path)
+
+    def _on_response(self, _dialog, response: str) -> None:
+        if response != "run":
+            return
+        includes = self._selected_includes()
+        if not includes:
+            self.window._toast(_("Select at least one takeout section"))
+            TakeoutWizardDialog(self.window).present()
+            return
+        dest = Path(self._folder).expanduser()
+        try:
+            dest.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            self.window._toast(_("Could not create folder: {error}").format(error=str(exc)[:120]))
+            return
+        dest_str = str(dest)
+        include_copy = list(includes)
+        self.window._toast(
+            _("Starting account takeout ({sections})…").format(sections=", ".join(include_copy))
+        )
+
+        def work():
+            return self.window.cli.takeout_run(dest_str, include=include_copy)
+
+        def done(_result) -> None:
+            self.window._toast(_("Takeout finished: {folder}").format(folder=dest_str))
+            subprocess.Popen(
+                ["xdg-open", dest_str],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+        def failed(exc: BaseException) -> None:
+            if isinstance(exc, NotLoggedIn):
+                self.window._toast(_("Sign in required for account takeout"))
+            else:
+                self.window._toast(_("Takeout failed: {error}").format(error=str(exc)[:160]))
+
+        self.window._bg(work, done, failed)
+
+
 class GuidedSetupDialog(Adw.MessageDialog):
     """Short first-run / Help flow: CLI verify, preview, seed, enable always-on."""
 
@@ -3399,6 +3774,29 @@ class SettingsDialog(Adw.PreferencesDialog):
         cli_group.add(self.cli_row)
         account.add(cli_group)
 
+        takeout_group = Adw.PreferencesGroup(
+            title=_("Account takeout"),
+            description=_(
+                "Official CLI takeout run exports an offline copy (my-files / devices / "
+                "photos / revisions) into a local folder. Does not change your account. "
+                "Also available from Help → Account takeout."
+            ),
+        )
+        takeout_row = Adw.ActionRow(
+            title=_("Export account…"),
+            subtitle=_("Guided wizard: choose sections, destination folder, then run takeout."),
+        )
+        takeout_btn = Gtk.Button(label=_("Open"), valign=Gtk.Align.CENTER)
+        takeout_btn.connect(
+            "clicked",
+            lambda *_: window.get_application()._on_takeout()
+            if window.get_application() is not None
+            else None,
+        )
+        takeout_row.add_suffix(takeout_btn)
+        takeout_group.add(takeout_row)
+        account.add(takeout_group)
+
         appearance = Adw.PreferencesGroup(title=_("Appearance"))
         themes = Gtk.StringList.new([_("Dark"), _("Light"), _("System")])
         self.theme_row = Adw.ComboRow(title=_("Theme"), model=themes)
@@ -3449,6 +3847,21 @@ class SettingsDialog(Adw.PreferencesDialog):
         self.transfer_concurrency_row.set_value(float(current_conc))
         self.transfer_concurrency_row.connect("notify::value", self._on_transfer_concurrency)
         folders.add(self.transfer_concurrency_row)
+        self._drag_out_guard = False
+        self.drag_out_row = Adw.SwitchRow(
+            title=_("Enable drag files to file manager"),
+            subtitle=_(
+                "Opt-in and off by default. In My files, the first drag downloads the "
+                "selection via the transfer queue into a staging folder; drag again when "
+                "ready to offer Gdk.FileList. prepare never blocks or pumps GDK. "
+                "Still risky on some compositors/file managers (files may stay under "
+                "/tmp staging) — use toolbar Download if that happens. Rubber-band "
+                "multi-select from empty gaps is unchanged."
+            ),
+        )
+        self.drag_out_row.set_active(bool(self.cfg.get("drag_out_enabled")))
+        self.drag_out_row.connect("notify::active", self._on_drag_out_enabled)
+        folders.add(self.drag_out_row)
         app_page.add(folders)
 
         sync = Adw.PreferencesGroup(
@@ -3851,6 +4264,19 @@ class SettingsDialog(Adw.PreferencesDialog):
                 value,
             ).format(count=value)
         )
+
+    def _on_drag_out_enabled(self, row, _pspec) -> None:
+        if self._drag_out_guard:
+            return
+        enabled = bool(row.get_active())
+        if enabled == bool(self.cfg.get("drag_out_enabled")):
+            return
+        self._persist(drag_out_enabled=enabled)
+        if enabled:
+            self.window._toast(_("Drag to file manager enabled — My files only; drag twice (stage, then drop)"))
+        else:
+            self.window._clear_drag_out_staging(restore_rubberband=True)
+            self.window._toast(_("Drag to file manager disabled"))
 
     def _on_theme(self, row, _pspec) -> None:
         name = ["dark", "light", "system"][int(row.get_selected())]

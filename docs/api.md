@@ -20,7 +20,7 @@ cli.album_remove_photo("/albums/Summer", ["/photos/PHOTO-UID"])
 # cli.album_delete("/albums/Summer", save=True)
 # cli.delete("/trash/pdl-del-sample")  # one already-trashed item
 # cli.empty_trash()  # permanently deletes every item in /trash
-# cli.takeout_run(str(Path.home() / "DriveTakeout"), include=["my-files"])  # CLI 0.9.0+; no GUI yet
+# cli.takeout_run(str(Path.home() / "DriveTakeout"), include=["my-files"])  # CLI 0.9.0+; Settings/Help wizard also wraps this
 ```
 
 Always-on folder worker (separate process, not FUSE):

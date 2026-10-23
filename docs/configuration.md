@@ -7,6 +7,8 @@
 | Settings → Language | System default, English, Русский, 简体中文, العربية, Italiano, Português, Español, 한국어, 日本語; changing language restarts the Gio app. Portuguese is gettext `pt`. Arabic is RTL |
 | Settings → Download folder | Local folder for toolbar CLI downloads |
 | Settings → Parallel transfers | Max concurrent toolbar upload/download CLI processes (`gui.json` `transfer_max_concurrency`; default **2**; range 1–4). Different remote/local paths can run together while browsing; set to 1 if the official CLI hits SQLite lock errors |
+| Settings → Enable drag files to file manager | Opt-in My files drag-out (`gui.json` `drag_out_enabled`; **default false**). Stages via transfer queue, then `Gdk.FileList`; still risky — see Usage |
+| Settings → Account takeout / Help → Account takeout | Wizard for official `proton-drive takeout run` (sections + destination folder; offline export, no account changes) |
 | Settings → Always-on folder | One or more local folders synced with `/my-files/...` (download + upload; default skip/merge). Legacy single-folder installs migrate into the first `sync_pairs` entry |
 | Settings → Sync pairs | Add/remove/edit extra local↔remote pairs (`gui.json` `sync_pairs`); each has `id`, `enabled`, `local_path`, `remote_root`, optional `exclude` / `conflict_policy` / `direction` |
 | Settings → Pause sync | Keep always-on enabled but skip worker passes until resume (also on the tray menu) |

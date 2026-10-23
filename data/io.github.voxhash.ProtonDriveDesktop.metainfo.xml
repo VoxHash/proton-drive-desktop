@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.17.0" date="2026-10-23">
+      <description>
+        <p>Account takeout wizard in Settings and Help runs real proton-drive takeout run (my-files, devices, photos, revisions). Opt-in drag-out from My files to a file manager (default off): stage via the transfer queue, then Gdk.FileList on the next drag — prepare never pumps GDK. Residual staging risk documented; toolbar Download remains the safe path.</p>
+      </description>
+    </release>
     <release version="1.16.0" date="2026-10-23">
       <description>
         <p>Parallel toolbar uploads/downloads (default 2 concurrent official CLI processes, configurable 1–4) while browsing My files. Transfer progress stays in a bottom strip instead of blocking the file list. Native helper deferred — Python queue concurrency is enough; do not rewrite the GTK UI.</p>

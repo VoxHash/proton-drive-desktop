@@ -434,6 +434,23 @@ def format_size(num: int | None) -> str:
     return f"{num} B"
 
 
+# Official ``proton-drive takeout run -i`` section names (CLI 0.9.0+).
+TAKEOUT_INCLUDE_CHOICES: tuple[str, ...] = ("my-files", "devices", "photos", "revisions")
+
+
+def normalize_takeout_includes(values: list[str] | tuple[str, ...] | None) -> list[str]:
+    """Keep known takeout ``--include`` names in CLI order; drop unknowns/duplicates."""
+    if not values:
+        return []
+    allowed = set(TAKEOUT_INCLUDE_CHOICES)
+    seen: set[str] = set()
+    for raw in values:
+        key = str(raw or "").strip().lower()
+        if key in allowed:
+            seen.add(key)
+    return [name for name in TAKEOUT_INCLUDE_CHOICES if name in seen]
+
+
 def parse_filesystem_size_payload(data: Any) -> tuple[int | None, int | None]:
     """Extract ``(size_bytes, number_of_descendants)`` from ``filesystem size -j``."""
     if not isinstance(data, dict):
@@ -761,10 +778,11 @@ class ProtonDriveCli:
 
         Requires at least one ``--include`` section. Does not change the account.
         """
-        if not include:
+        sections = normalize_takeout_includes(include)
+        if not sections:
             raise CliError("takeout run requires at least one --include section")
         args: list[str] = ["takeout", "run"]
-        for section in include:
+        for section in sections:
             args.extend(["-i", section])
         args.append(local_folder)
         return self.run(args, timeout=7200)

@@ -219,6 +219,8 @@ _DEFAULTS: dict[str, Any] = {
     "window_maximized": False,
     "last_path": "/my-files",
     "transfer_max_concurrency": 2,
+    # Opt-in: drag My files onto a local file manager (staging + Gdk.FileList; still risky).
+    "drag_out_enabled": False,
 }
 
 
@@ -359,6 +361,7 @@ def load() -> dict[str, Any]:
     data["transfer_max_concurrency"] = normalize_transfer_max_concurrency(
         data.get("transfer_max_concurrency")
     )
+    data["drag_out_enabled"] = bool(data.get("drag_out_enabled"))
     from .i18n import normalize_language
 
     data["language"] = normalize_language(data.get("language"))
@@ -552,6 +555,7 @@ def save(data: dict[str, Any]) -> None:
     payload["sync_enabled"] = bool(payload.get("sync_enabled"))
     payload["sync_paused"] = bool(payload.get("sync_paused"))
     payload["setup_completed"] = bool(payload.get("setup_completed"))
+    payload["drag_out_enabled"] = bool(payload.get("drag_out_enabled"))
     CONFIG_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
