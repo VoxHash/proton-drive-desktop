@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused checks for in-memory transfer queue and process-tree cancel."""
+"""Focused checks for parallel transfer queue and process-tree cancel."""
 
 from __future__ import annotations
 
@@ -17,7 +17,8 @@ from proton_drive_desktop.cli import (  # noqa: E402
     TransferCancelled,
     kill_owned_process_tree,
 )
-from proton_drive_desktop.transfer_queue import TransferQueue  # noqa: E402
+from proton_drive_desktop.config import normalize_transfer_max_concurrency  # noqa: E402
+from proton_drive_desktop.transfer_queue import TransferQueue, clamp_max_concurrency  # noqa: E402
 
 
 def test_kill_owned_process_tree() -> None:
@@ -30,9 +31,9 @@ def test_kill_owned_process_tree() -> None:
 def test_run_transfer_cancel_kills_tree() -> None:
     cli = ProtonDriveCli.__new__(ProtonDriveCli)
     cli.binary = "bash"
-    cli._transfer_proc = None
+    cli._transfer_procs = {}
+    cli._transfer_cancelled_pids = set()
     cli._transfer_lock = threading.Lock()
-    cli._transfer_cancelled = False
     outcome: list[str] = []
 
     def work() -> None:
@@ -48,8 +49,8 @@ def test_run_transfer_cancel_kills_tree() -> None:
     thread.start()
     for _ in range(100):
         with cli._transfer_lock:
-            proc = cli._transfer_proc
-        if proc is not None and proc.poll() is None:
+            procs = [p for p in cli._transfer_procs.values() if p.poll() is None]
+        if procs:
             break
         time.sleep(0.05)
     else:
@@ -60,10 +61,49 @@ def test_run_transfer_cancel_kills_tree() -> None:
     assert outcome == ["cancelled"]
 
 
-def test_transfer_queue_serial() -> None:
+def test_run_transfer_parallel_cancel_all() -> None:
+    cli = ProtonDriveCli.__new__(ProtonDriveCli)
+    cli.binary = "bash"
+    cli._transfer_procs = {}
+    cli._transfer_cancelled_pids = set()
+    cli._transfer_lock = threading.Lock()
+    outcomes: list[str] = []
+    lock = threading.Lock()
+
+    def work() -> None:
+        try:
+            cli.run_transfer(["-c", "sleep 60"], timeout=30)
+            with lock:
+                outcomes.append("ok")
+        except TransferCancelled:
+            with lock:
+                outcomes.append("cancelled")
+        except Exception as exc:  # noqa: BLE001
+            with lock:
+                outcomes.append(f"err:{exc}")
+
+    threads = [threading.Thread(target=work, daemon=True) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for _ in range(100):
+        with cli._transfer_lock:
+            alive = [p for p in cli._transfer_procs.values() if p.poll() is None]
+        if len(alive) >= 2:
+            break
+        time.sleep(0.05)
+    else:
+        raise AssertionError("parallel transfer processes did not start")
+    assert cli.cancel_transfer() is True
+    for thread in threads:
+        thread.join(timeout=10)
+        assert not thread.is_alive()
+    assert outcomes == ["cancelled", "cancelled"]
+
+
+def test_transfer_queue_serial_when_max_one() -> None:
     order: list[int] = []
     done = threading.Event()
-    queue = TransferQueue(cancel_cli=lambda: False, on_idle=done.set)
+    queue = TransferQueue(cancel_cli=lambda: False, max_concurrency=1, on_idle=done.set)
 
     def make_runner(n: int):
         def runner(_on_progress):
@@ -81,6 +121,45 @@ def test_transfer_queue_serial() -> None:
     assert queue.snapshot().total_count == 0
 
 
+def test_transfer_queue_parallel_two_slots() -> None:
+    gate = threading.Event()
+    entered = threading.Semaphore(0)
+    idle = threading.Event()
+    finished: list[str] = []
+
+    def on_finished(job, _result, _snap) -> None:
+        finished.append(job.label)
+
+    queue = TransferQueue(
+        cancel_cli=lambda: False,
+        max_concurrency=2,
+        on_finished=on_finished,
+        on_idle=idle.set,
+    )
+
+    def blocker(label: str):
+        def runner(_on_progress):
+            entered.release()
+            assert gate.wait(timeout=5)
+            return label
+
+        return runner
+
+    queue.enqueue("upload", "a", blocker("a"))
+    queue.enqueue("upload", "b", blocker("b"))
+    queue.enqueue("download", "c", blocker("c"))
+    assert entered.acquire(timeout=2)
+    assert entered.acquire(timeout=2)
+    snap = queue.snapshot()
+    assert snap.active_count == 2
+    assert snap.pending_count == 1
+    assert {j.label for j in snap.active} == {"a", "b"}
+    gate.set()
+    assert idle.wait(timeout=5)
+    assert set(finished) == {"a", "b", "c"}
+    assert queue.snapshot().total_count == 0
+
+
 def test_transfer_queue_clear_pending() -> None:
     started = threading.Event()
     release = threading.Event()
@@ -92,6 +171,7 @@ def test_transfer_queue_clear_pending() -> None:
 
     queue = TransferQueue(
         cancel_cli=lambda: False,
+        max_concurrency=1,
         on_finished=on_finished,
         on_idle=idle.set,
     )
@@ -119,9 +199,9 @@ def test_transfer_queue_clear_pending() -> None:
 def test_transfer_queue_cancel_active_advances() -> None:
     cli = ProtonDriveCli.__new__(ProtonDriveCli)
     cli.binary = "bash"
-    cli._transfer_proc = None
+    cli._transfer_procs = {}
+    cli._transfer_cancelled_pids = set()
     cli._transfer_lock = threading.Lock()
-    cli._transfer_cancelled = False
 
     finished: list[str] = []
     cancelled: list[str] = []
@@ -137,6 +217,7 @@ def test_transfer_queue_cancel_active_advances() -> None:
 
     queue = TransferQueue(
         cancel_cli=cli.cancel_transfer,
+        max_concurrency=1,
         on_started=lambda job, _snap: active_started.set() if job.label == "sleep" else None,
         on_finished=on_finished,
         on_error=on_error,
@@ -154,8 +235,8 @@ def test_transfer_queue_cancel_active_advances() -> None:
     assert active_started.wait(timeout=5)
     for _ in range(100):
         with cli._transfer_lock:
-            proc = cli._transfer_proc
-        if proc is not None and proc.poll() is None:
+            procs = [p for p in cli._transfer_procs.values() if p.poll() is None]
+        if procs:
             break
         time.sleep(0.05)
     assert queue.cancel_active() is True
@@ -164,10 +245,21 @@ def test_transfer_queue_cancel_active_advances() -> None:
     assert finished == ["next"]
 
 
+def test_clamp_concurrency() -> None:
+    assert clamp_max_concurrency(0) == 1
+    assert clamp_max_concurrency(99) == 4
+    assert clamp_max_concurrency(None) == 2
+    assert normalize_transfer_max_concurrency("3") == 3
+    assert normalize_transfer_max_concurrency("nope") == 2
+
+
 if __name__ == "__main__":
     test_kill_owned_process_tree()
     test_run_transfer_cancel_kills_tree()
-    test_transfer_queue_serial()
+    test_run_transfer_parallel_cancel_all()
+    test_transfer_queue_serial_when_max_one()
+    test_transfer_queue_parallel_two_slots()
     test_transfer_queue_clear_pending()
     test_transfer_queue_cancel_active_advances()
+    test_clamp_concurrency()
     print("transfer queue checks passed")

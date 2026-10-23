@@ -2,6 +2,8 @@
 
 Launch `proton-drive-desktop`. Sidebar sections map to CLI paths `/my-files`, `/photos`, `/shared-with-me`, `/trash`. Enter opens a folder. Download writes to the folder in Settings (default `~/Downloads`). In **My files**, drag and drop local files or folders onto the file view to upload into the current remote folder (`filesystem upload`). Use the Download toolbar action for downloads. Rubber-band multi-select works from empty gaps between items.
 
+Toolbar uploads/downloads run in a parallel queue (default **2** official CLI processes; Settings → Downloads → Parallel transfers, 1–4). You can start another transfer to a different path while the first runs and keep browsing sections; progress, Cancel, and Clear queue sit in the bottom transfer strip (not a full-page spinner). Set parallel slots to **1** if the CLI reports cache lock errors.
+
 **Photos** lists albums from `proton-drive album list` above the capture-date timeline. New album (the folder-new toolbar button in Photos) runs `album create`. Rename an album with the toolbar, F2, or right-click (`album update -n`). Delete album asks for confirmation then runs `album delete -s` (photos stay in the timeline). Open a day, select a photo, then Copy / Add to album (`album add-photo` with `/photos/{uid}`). Inside an album, Remove from album or the trash button runs `album remove-photo`.
 
 **Share** (toolbar) runs live `proton-drive sharing` on the selected file or folder: invite by email (viewer / editor / admin), list members and pending invites, create or remove a public link, stop sharing, or leave a share that was shared with you.
@@ -14,7 +16,7 @@ Settings can enable an **always-on folder** (default `~/Proton Drive`). That is 
 
 The primary menu (hamburger) matches official Drive’s Help / Settings / About / account actions:
 
-- **Settings** — live account email, Storage quota (Unavailable until the official CLI exposes a quota command; probed on open), CLI version vs Proton newer check and path, theme, language (System default, English, ru, zh_CN, ar, it, pt, es, ko, ja; restarts the app; Arabic RTL), download folder, always-on folder (enable, path, worker activity), XDG autostart, optional systemd user timer, sign out (`proton-drive auth logout`)
+- **Settings** — live account email, Storage quota (Unavailable until the official CLI exposes a quota command; probed on open), CLI version vs Proton newer check and path, theme, language (System default, English, ru, zh_CN, ar, it, pt, es, ko, ja; restarts the app; Arabic RTL), download folder, parallel transfers (1–4 CLI jobs), always-on folder (enable, path, worker activity), XDG autostart, optional systemd user timer, sign out (`proton-drive auth logout`)
 - **Proton Drive Help** — https://proton.me/support/drive
 - **Drive CLI Help** — https://proton.me/support/drive-cli
 - **Open Drive in browser** — https://drive.proton.me

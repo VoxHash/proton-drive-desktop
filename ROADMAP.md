@@ -47,7 +47,9 @@
 - [x] Drag-and-drop upload onto the file view (files and folders in My files)
 - [ ] Drag-out download from My files onto a local folder — **deferred until fixed** (GTK4 DragSource + staging/`Gdk.FileList` previously saved under `/tmp` instead of the drop target; removed in 1.15.3)
 - [x] Transfer progress for upload/download (best-effort scrape of CLI spinner text until Proton ships JSON progress)
-- [x] In-memory transfer queue with one active CLI process and cancel of the owned process tree
+- [x] In-memory transfer queue with configurable parallel CLI processes (default 2, Settings 1–4) and cancel of owned process trees
+- [x] Browse My files / other sections while toolbar transfers run (bottom transfer strip; no full-page busy overlay for uploads/downloads)
+- [x] Native helper analysis: **deferred** — keep Python GTK UI; raise CLI concurrency in `TransferQueue` (Rust/Go/Zig/C helper not justified; Ruby is a poor fit; do not rewrite GUI or Proton crypto)
 - [x] In-list search / filter (Ctrl+F) over the current folder listing
 - [x] Clickable breadcrumb trail for the current remote path
 - [x] List / grid view toggle with extension-aware file-type icons

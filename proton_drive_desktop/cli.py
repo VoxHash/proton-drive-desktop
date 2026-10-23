@@ -448,18 +448,20 @@ def parse_filesystem_size_payload(data: Any) -> tuple[int | None, int | None]:
 class ProtonDriveCli:
     def __init__(self, binary: str | None = None) -> None:
         self.binary = binary or find_binary()
-        self._transfer_proc: subprocess.Popen | None = None
+        self._transfer_procs: dict[int, subprocess.Popen] = {}
+        self._transfer_cancelled_pids: set[int] = set()
         self._transfer_lock = threading.Lock()
-        self._transfer_cancelled = False
 
     def cancel_transfer(self) -> bool:
-        """Kill the owned process tree of the active upload/download. Returns True if signalled."""
+        """Kill owned process trees of every active upload/download. Returns True if any signalled."""
         with self._transfer_lock:
-            self._transfer_cancelled = True
-            proc = self._transfer_proc
-        if proc is None or proc.poll() is not None:
+            procs = [proc for proc in self._transfer_procs.values() if proc.poll() is None]
+            for proc in procs:
+                self._transfer_cancelled_pids.add(proc.pid)
+        if not procs:
             return False
-        kill_owned_process_tree(proc.pid)
+        for proc in procs:
+            kill_owned_process_tree(proc.pid)
         return True
 
     def run(self, args: list[str], *, json_out: bool = True, timeout: int = 180) -> Any:
@@ -496,13 +498,15 @@ class ProtonDriveCli:
         timeout: int = 3600,
         on_progress: Callable[[TransferProgress], None] | None = None,
     ) -> str:
-        """Run upload/download on a PTY so the CLI emits spinner progress text."""
+        """Run upload/download on a PTY so the CLI emits spinner progress text.
+
+        Multiple calls may run concurrently (one owned process tree each). Cancel
+        marks every registered transfer pid and kills those process groups.
+        """
         cmd = [self.binary, *args]
         master, slave = pty.openpty()
         output_chunks: list[str] = []
         leftover = ""
-        with self._transfer_lock:
-            self._transfer_cancelled = False
         try:
             proc = subprocess.Popen(
                 cmd,
@@ -515,8 +519,8 @@ class ProtonDriveCli:
         finally:
             os.close(slave)
         with self._transfer_lock:
-            self._transfer_proc = proc
-            cancelled_at_start = self._transfer_cancelled
+            self._transfer_procs[proc.pid] = proc
+            cancelled_at_start = proc.pid in self._transfer_cancelled_pids
 
         deadline = time.monotonic() + timeout
         returncode = -1
@@ -530,7 +534,7 @@ class ProtonDriveCli:
                 raise TransferCancelled("Transfer cancelled")
             while True:
                 with self._transfer_lock:
-                    cancelled = self._transfer_cancelled
+                    cancelled = proc.pid in self._transfer_cancelled_pids
                 if cancelled:
                     kill_owned_process_tree(proc.pid)
                     try:
@@ -588,10 +592,9 @@ class ProtonDriveCli:
             returncode = proc.wait(timeout=5)
         finally:
             with self._transfer_lock:
-                if self._transfer_proc is proc:
-                    self._transfer_proc = None
-                was_cancelled = self._transfer_cancelled
-                self._transfer_cancelled = False
+                self._transfer_procs.pop(proc.pid, None)
+                was_cancelled = proc.pid in self._transfer_cancelled_pids
+                self._transfer_cancelled_pids.discard(proc.pid)
             try:
                 os.close(master)
             except OSError:

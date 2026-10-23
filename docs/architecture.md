@@ -1,8 +1,16 @@
 # Architecture
 
-GTK4 window → background thread → official `proton-drive` JSON CLI → OS keyring session.
+GTK4 window → background thread(s) → official `proton-drive` JSON CLI → OS keyring session.
 
 No Proton API is reimplemented. When Proton ships a Linux Drive app, this GUI should be retired.
+
+## Transfers and native helpers
+
+Toolbar upload/download jobs go through `TransferQueue` (default **2** parallel owned CLI processes; Settings → Parallel transfers clamps to 1–4). Each job is one `proton-drive filesystem upload|download` (or photo) process tree; Cancel kills every active owned tree. Listing and navigation use separate short-lived `run()` calls on background threads and do **not** take over the file list while transfers run (bottom transfer strip).
+
+Official CLI 0.9.x keeps shared SQLite caches under `~/.cache/proton-drive-cli` (WAL). Concurrent CLI processes are best-effort and subject to Proton fair-use limits; use concurrency **1** if the CLI reports lock/busy errors.
+
+**Native language extension (Rust / Go / Zig / C): deferred.** Memory and wall time for transfers are dominated by Proton’s Bun-based CLI (crypto + network), not by the thin Python GTK process. A Rust/Go helper that still shells out to `proton-drive` would add IPC/build cost without removing those Bun processes. Rewriting the whole GTK UI in a native language does not help this goal and is out of scope. Ruby is a poor fit for a transfer worker. C would only be justified for tight GLib bindings we do not need. Prefer raising CLI concurrency in Python (done in 1.16.0) over a native rewrite.
 
 ## Security guarantees (process boundary)
 

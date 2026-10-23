@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.16.0" date="2026-10-23">
+      <description>
+        <p>Parallel toolbar uploads/downloads (default 2 concurrent official CLI processes, configurable 1–4) while browsing My files. Transfer progress stays in a bottom strip instead of blocking the file list. Native helper deferred — Python queue concurrency is enough; do not rewrite the GTK UI.</p>
+      </description>
+    </release>
     <release version="1.15.3" date="2026-10-23">
       <description>
         <p>Disable broken drag-out download from My files (deferred until fixed). Drag-and-drop upload onto My files is unchanged. Remove docs screenshot assets.</p>

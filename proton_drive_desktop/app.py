@@ -49,6 +49,8 @@ from .config import (
     SYNC_PASS_TIMEOUT_SECONDS_MAX,
     SYNC_PASS_TIMEOUT_SECONDS_MIN,
     SYNC_PASS_TIMEOUT_SECONDS_SUGGESTED,
+    TRANSFER_MAX_CONCURRENCY_MAX,
+    TRANSFER_MAX_CONCURRENCY_MIN,
     apply_theme,
     download_folder,
     empty_sync_pair,
@@ -59,6 +61,7 @@ from .config import (
     normalize_sync_interval_seconds,
     normalize_sync_pass_timeout_seconds,
     normalize_sync_remote_root,
+    normalize_transfer_max_concurrency,
     save as save_config,
     set_gui_busy,
     sync_folder as configured_sync_folder,
@@ -593,8 +596,10 @@ class DriveWindow(Adw.ApplicationWindow):
         self.reload()
 
     def _init_transfer_queue(self) -> None:
+        max_conc = normalize_transfer_max_concurrency(load_config().get("transfer_max_concurrency"))
         self.transfers = TransferQueue(
             cancel_cli=self.cli.cancel_transfer,
+            max_concurrency=max_conc,
             on_started=lambda job, snap: GLib.idle_add(self._on_transfer_started, job, snap),
             on_progress=lambda progress, snap: GLib.idle_add(self._apply_transfer_progress, progress, snap),
             on_finished=lambda job, result, snap: GLib.idle_add(self._on_transfer_finished, job, result, snap),
@@ -757,22 +762,39 @@ class DriveWindow(Adw.ApplicationWindow):
         self.status = Gtk.Label(xalign=0, margin_start=16, margin_end=16, margin_top=6, margin_bottom=6, css_classes=["dim-label"])
         content_toolbar.add_bottom_bar(self.status)
 
+        # Persistent transfer strip: browsing stays on the file list while CLI jobs run.
+        self.transfer_bar = Gtk.Box(
+            orientation=Gtk.Orientation.HORIZONTAL,
+            spacing=10,
+            margin_start=12,
+            margin_end=12,
+            margin_top=6,
+            margin_bottom=6,
+            visible=False,
+        )
+        self.transfer_label = Gtk.Label(
+            xalign=0,
+            hexpand=True,
+            ellipsize=Pango.EllipsizeMode.END,
+            css_classes=["dim-label"],
+        )
+        self.progress_bar = Gtk.ProgressBar(show_text=True, width_request=220, hexpand=True, visible=False)
+        self.cancel_transfer_btn = Gtk.Button(label=_("Cancel transfer"), visible=False)
+        self.cancel_transfer_btn.connect("clicked", self._cancel_active_transfer)
+        self.clear_queue_btn = Gtk.Button(label=_("Clear queue"), visible=False)
+        self.clear_queue_btn.connect("clicked", self._clear_transfer_queue)
+        self.transfer_bar.append(self.transfer_label)
+        self.transfer_bar.append(self.progress_bar)
+        self.transfer_bar.append(self.cancel_transfer_btn)
+        self.transfer_bar.append(self.clear_queue_btn)
+        content_toolbar.add_bottom_bar(self.transfer_bar)
+
         self.stack = Gtk.Stack()
         self.spinner = Gtk.Spinner()
         loading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER, halign=Gtk.Align.CENTER, spacing=12)
         loading.append(self.spinner)
         self.busy_label = Gtk.Label(label=_("Loading Proton Drive…"))
         loading.append(self.busy_label)
-        self.progress_bar = Gtk.ProgressBar(show_text=True, width_request=280, visible=False)
-        loading.append(self.progress_bar)
-        transfer_actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8, halign=Gtk.Align.CENTER)
-        self.cancel_transfer_btn = Gtk.Button(label=_("Cancel transfer"), visible=False)
-        self.cancel_transfer_btn.connect("clicked", self._cancel_active_transfer)
-        self.clear_queue_btn = Gtk.Button(label=_("Clear queue"), visible=False)
-        self.clear_queue_btn.connect("clicked", self._clear_transfer_queue)
-        transfer_actions.append(self.cancel_transfer_btn)
-        transfer_actions.append(self.clear_queue_btn)
-        loading.append(transfer_actions)
         self.stack.add_named(loading, "loading")
 
         self.empty = Adw.StatusPage(
@@ -1004,6 +1026,7 @@ class DriveWindow(Adw.ApplicationWindow):
         list_item.get_child().set_text(text)
 
     def _set_busy(self, busy: bool, message: str = "") -> None:
+        """Listing / mutation busy overlay only — transfers use ``transfer_bar`` instead."""
         self.busy = busy
         set_gui_busy(busy)
         self.spinner.set_spinning(busy)
@@ -1012,60 +1035,75 @@ class DriveWindow(Adw.ApplicationWindow):
             text = message or _("Working…")
             self.status.set_text(text)
             self.busy_label.set_text(text)
-            self.progress_bar.set_fraction(0.0)
-            self.progress_bar.set_text("")
-            self.progress_bar.set_visible(False)
-            self._sync_transfer_action_buttons()
-        else:
-            self.progress_bar.set_visible(False)
-            self.progress_bar.set_fraction(0.0)
-            self.progress_bar.set_text("")
-            self.cancel_transfer_btn.set_visible(False)
-            self.clear_queue_btn.set_visible(False)
+        # When leaving listing busy, do not hide an in-flight transfer strip.
 
-    def _transfer_status_message(self, job: TransferJob, snap: QueueSnapshot) -> str:
+    def _transfer_status_message(self, job: TransferJob | None, snap: QueueSnapshot) -> str:
+        active_n = snap.active_count
+        if active_n > 1:
+            label = ngettext(
+                "{count} transfer running",
+                "{count} transfers running",
+                active_n,
+            ).format(count=active_n)
+        elif job is not None:
+            label = job.label
+        elif snap.primary is not None:
+            label = snap.primary.label
+        else:
+            label = _("Transferring…")
+        bits = [label]
+        if active_n > 1 and job is not None:
+            bits.append(job.label)
         if snap.pending_count:
-            return _("{label} — {count} queued").format(label=job.label, count=snap.pending_count)
-        return job.label
+            return _("{label} — {count} queued").format(
+                label=" · ".join(bits) if len(bits) > 1 else label,
+                count=snap.pending_count,
+            )
+        return " · ".join(bits) if len(bits) > 1 else label
 
     def _sync_transfer_action_buttons(self, snap: QueueSnapshot | None = None) -> None:
         state = snap if snap is not None else self.transfers.snapshot()
-        transferring = state.active is not None or state.pending_count > 0
-        self.cancel_transfer_btn.set_visible(transferring and state.active is not None)
+        transferring = state.total_count > 0
+        self.transfer_bar.set_visible(transferring)
+        self.cancel_transfer_btn.set_visible(transferring and state.active_count > 0)
         self.clear_queue_btn.set_visible(state.pending_count > 0)
+        if not transferring:
+            self.progress_bar.set_visible(False)
+            self.progress_bar.set_fraction(0.0)
+            self.progress_bar.set_text("")
+            self.transfer_label.set_text("")
 
     def _on_transfer_queue_changed(self, snap: QueueSnapshot) -> bool:
-        if snap.active is not None:
-            text = self._transfer_status_message(snap.active, snap)
+        if snap.total_count > 0:
+            text = self._transfer_status_message(snap.primary, snap)
+            self.transfer_label.set_text(text)
             self.status.set_text(text)
-            if self.busy:
-                self.busy_label.set_text(text)
         self._sync_transfer_action_buttons(snap)
         return False
 
     def _on_transfer_started(self, job: TransferJob, snap: QueueSnapshot) -> bool:
         message = self._transfer_status_message(job, snap)
-        if not self.busy:
-            self._set_busy(True, message)
-        else:
-            self.status.set_text(message)
-            self.busy_label.set_text(message)
-            self.progress_bar.set_fraction(0.0)
-            self.progress_bar.set_text("")
-            self.progress_bar.set_visible(False)
-            self._sync_transfer_action_buttons(snap)
+        self.transfer_label.set_text(message)
+        self.status.set_text(message)
+        self.progress_bar.set_fraction(0.0)
+        self.progress_bar.set_text("")
+        self.progress_bar.set_visible(False)
+        self._sync_transfer_action_buttons(snap)
         return False
 
     def _apply_transfer_progress(self, progress: TransferProgress, snap: QueueSnapshot | None = None) -> bool:
-        if not self.busy:
-            return False
         state = snap if snap is not None else self.transfers.snapshot()
+        if state.total_count == 0:
+            return False
         text = progress.status_text()
         if text:
-            if state.pending_count:
-                text = _("{text} — {count} queued").format(text=text, count=state.pending_count)
+            if state.active_count > 1 or state.pending_count:
+                text = self._transfer_status_message(state.primary, state)
+                detail = progress.status_text()
+                if detail:
+                    text = f"{text} — {detail}"
+            self.transfer_label.set_text(text)
             self.status.set_text(text)
-            self.busy_label.set_text(text)
         if progress.percent is not None:
             fraction = max(0.0, min(1.0, progress.percent / 100.0))
             self.progress_bar.set_visible(True)
@@ -1075,6 +1113,12 @@ class DriveWindow(Adw.ApplicationWindow):
                 label = f"{progress.name} — {label}"
             if progress.size_label:
                 label = f"{label} ({progress.size_label})"
+            if state.active_count > 1:
+                label = ngettext(
+                    "{label} · {count} running",
+                    "{label} · {count} running",
+                    state.active_count,
+                ).format(label=label, count=state.active_count)
             if state.pending_count:
                 label = _("{label} — {count} queued").format(label=label, count=state.pending_count)
             self.progress_bar.set_text(label)
@@ -1105,6 +1149,7 @@ class DriveWindow(Adw.ApplicationWindow):
         if isinstance(exc, NotLoggedIn):
             self._transfer_fatal = True
             self.transfers.clear_pending()
+            self.transfers.cancel_active()
             self._fail(exc)
             return False
         self._toast(str(exc)[:180])
@@ -1113,13 +1158,14 @@ class DriveWindow(Adw.ApplicationWindow):
     def _on_transfers_idle(self) -> bool:
         if self._transfer_fatal:
             self._transfer_fatal = False
-            self.cancel_transfer_btn.set_visible(False)
-            self.clear_queue_btn.set_visible(False)
+            self._sync_transfer_action_buttons()
             return False
         folder = self._last_download_folder
         self._last_download_folder = None
-        self._set_busy(False)
-        self.reload()
+        self._sync_transfer_action_buttons()
+        # Refresh listing without blocking navigation on a full-page busy overlay for transfers.
+        if not self.busy:
+            self.reload()
         if folder:
             subprocess.Popen(["xdg-open", folder], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return False
@@ -1128,7 +1174,7 @@ class DriveWindow(Adw.ApplicationWindow):
         if not self.transfers.cancel_active():
             self._toast(_("No active transfer to cancel"))
             return
-        self._toast(_("Cancelling transfer…"))
+        self._toast(_("Cancelling transfers…"))
 
     def _clear_transfer_queue(self, *_args) -> None:
         cleared = self.transfers.clear_pending()
@@ -1141,9 +1187,14 @@ class DriveWindow(Adw.ApplicationWindow):
         queued_behind = snap.total_count > 0
         self.transfers.enqueue(kind, label, runner)
         if queued_behind:
-            self._toast(_("Queued: {label}").format(label=label))
-        elif not self.busy:
-            self._set_busy(True, label)
+            slots = self.transfers.max_concurrency
+            if snap.active_count >= slots:
+                self._toast(_("Queued: {label}").format(label=label))
+            else:
+                self._toast(_("Started in parallel: {label}").format(label=label))
+        self.transfer_bar.set_visible(True)
+        self.transfer_label.set_text(label)
+        self.status.set_text(label)
 
     def _bg(self, fn, then, err=None):
         def work():
@@ -3378,6 +3429,26 @@ class SettingsDialog(Adw.PreferencesDialog):
         choose_dl.connect("clicked", self._choose_download)
         self.download_row.add_suffix(choose_dl)
         folders.add(self.download_row)
+        self._transfer_concurrency_guard = False
+        current_conc = normalize_transfer_max_concurrency(self.cfg.get("transfer_max_concurrency"))
+        self.transfer_concurrency_row = Adw.SpinRow.new_with_range(
+            float(TRANSFER_MAX_CONCURRENCY_MIN),
+            float(TRANSFER_MAX_CONCURRENCY_MAX),
+            1.0,
+        )
+        self.transfer_concurrency_row.set_title(_("Parallel transfers"))
+        self.transfer_concurrency_row.set_subtitle(
+            _(
+                "How many toolbar upload/download CLI processes may run at once "
+                "(different remote paths / local destinations). Default 2; range {min}–{max}. "
+                "Official CLI shares a per-user SQLite cache — use 1 if you see lock errors. "
+                "Browsing My files stays available while transfers run."
+            ).format(min=TRANSFER_MAX_CONCURRENCY_MIN, max=TRANSFER_MAX_CONCURRENCY_MAX)
+        )
+        self.transfer_concurrency_row.set_digits(0)
+        self.transfer_concurrency_row.set_value(float(current_conc))
+        self.transfer_concurrency_row.connect("notify::value", self._on_transfer_concurrency)
+        folders.add(self.transfer_concurrency_row)
         app_page.add(folders)
 
         sync = Adw.PreferencesGroup(
@@ -3760,6 +3831,26 @@ class SettingsDialog(Adw.PreferencesDialog):
     def _persist(self, **updates) -> None:
         self.cfg.update(updates)
         save_config(self.cfg)
+
+    def _on_transfer_concurrency(self, row, _pspec) -> None:
+        if self._transfer_concurrency_guard:
+            return
+        value = normalize_transfer_max_concurrency(row.get_value())
+        if int(row.get_value()) != value:
+            self._transfer_concurrency_guard = True
+            row.set_value(float(value))
+            self._transfer_concurrency_guard = False
+        if value == normalize_transfer_max_concurrency(self.cfg.get("transfer_max_concurrency")):
+            return
+        self._persist(transfer_max_concurrency=value)
+        self.window.transfers.set_max_concurrency(value)
+        self.window._toast(
+            ngettext(
+                "Parallel transfers: {count} slot",
+                "Parallel transfers: {count} slots",
+                value,
+            ).format(count=value)
+        )
 
     def _on_theme(self, row, _pspec) -> None:
         name = ["dark", "light", "system"][int(row.get_selected())]

@@ -218,6 +218,7 @@ _DEFAULTS: dict[str, Any] = {
     "window_height": _DEFAULT_WINDOW_HEIGHT,
     "window_maximized": False,
     "last_path": "/my-files",
+    "transfer_max_concurrency": 2,
 }
 
 
@@ -355,6 +356,9 @@ def load() -> dict[str, Any]:
     )
     data["window_maximized"] = bool(data.get("window_maximized"))
     data["last_path"] = _normalize_last_path_value(data.get("last_path"))
+    data["transfer_max_concurrency"] = normalize_transfer_max_concurrency(
+        data.get("transfer_max_concurrency")
+    )
     from .i18n import normalize_language
 
     data["language"] = normalize_language(data.get("language"))
@@ -384,6 +388,30 @@ def normalize_sync_remote_root(value: Any) -> str:
     if path.startswith("/my-files/") and len(path) > len("/my-files/"):
         return path
     return "/my-files"
+
+
+# Toolbar upload/download: parallel owned ``proton-drive`` processes (different paths).
+TRANSFER_MAX_CONCURRENCY_DEFAULT = 2
+TRANSFER_MAX_CONCURRENCY_MIN = 1
+TRANSFER_MAX_CONCURRENCY_MAX = 4
+
+
+def normalize_transfer_max_concurrency(value: Any) -> int:
+    """Clamp parallel transfer slots to ``[1, 4]``; invalid → 2.
+
+    Official CLI 0.9.x shares per-user SQLite caches under
+    ``~/.cache/proton-drive-cli`` (WAL). Concurrent processes are best-effort;
+    default 2; set to 1 if the CLI reports lock/busy errors.
+    """
+    try:
+        n = int(float(value))
+    except (TypeError, ValueError):
+        return TRANSFER_MAX_CONCURRENCY_DEFAULT
+    if n < TRANSFER_MAX_CONCURRENCY_MIN:
+        return TRANSFER_MAX_CONCURRENCY_MIN
+    if n > TRANSFER_MAX_CONCURRENCY_MAX:
+        return TRANSFER_MAX_CONCURRENCY_MAX
+    return n
 
 
 # Official CLI filesystem -f values shared by upload and download (no replace/remove).

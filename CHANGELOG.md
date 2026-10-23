@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.0] — 2026-10-23
+
+### Added
+
+- Parallel toolbar uploads/downloads: up to **2** owned `proton-drive` CLI processes by default (Settings → Downloads → Parallel transfers, range 1–4) so different remote paths / local destinations can transfer at once while you keep browsing
+- Bottom transfer strip (progress, Cancel, Clear queue) so transfers no longer replace the file list with a full-page spinner
+
+### Changed
+
+- `TransferQueue` and `ProtonDriveCli.run_transfer` track multiple process trees; Cancel kills every active owned tree
+- Documented why a Rust/Go/Zig/C helper (and a full native GUI rewrite) is deferred: crypto/network cost stays inside Proton’s Bun CLI; raising Python-side CLI concurrency is the justified lever
+
+### Caveats
+
+- Official CLI 0.9.x shares per-user SQLite caches under `~/.cache/proton-drive-cli` (WAL). Concurrent processes are best-effort; set Parallel transfers to **1** if you see lock/busy failures. Fair-use rate limits still apply.
+
 ## [1.15.3] — 2026-10-23
 
 ### Removed
@@ -183,6 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First GTK4 GUI for Proton's official Drive CLI on Linux
 - Live account listing, upload/download, trash, new folder
 
+[1.16.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.16.0
 [1.15.3]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.3
 [1.15.2]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.2
 [1.15.1]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.1
