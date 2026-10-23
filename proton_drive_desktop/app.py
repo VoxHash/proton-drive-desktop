@@ -159,6 +159,25 @@ def drag_out_section_allowed(section: str) -> bool:
     return section == "/my-files"
 
 
+def key_requests_trash(keyval: int) -> bool:
+    """True when Delete / KP_Delete / Backspace should run toolbar Trash."""
+    return keyval in (Gdk.KEY_Delete, Gdk.KEY_KP_Delete, Gdk.KEY_BackSpace)
+
+
+def context_click_selection_action(*, already_selected: bool, ctrl_held: bool) -> str:
+    """How to update MultiSelection before showing a file context menu.
+
+    Returns ``keep`` when the clicked row is already selected (preserve multi-select),
+    ``additive`` when Ctrl is held (add the clicked row), or ``exclusive`` (sole
+    selection on the clicked row).
+    """
+    if ctrl_held:
+        return "additive"
+    if already_selected:
+        return "keep"
+    return "exclusive"
+
+
 def filter_drag_out_items(section: str, items: list) -> list:
     """Selected listing rows eligible for drag-out → local folder download."""
     if not drag_out_section_allowed(section):
@@ -888,6 +907,7 @@ class DriveWindow(Adw.ApplicationWindow):
         )
         label.set_text(item.name)
         label.set_tooltip_text(item.path)
+        box._drive_item = item
 
     def _grid_setup(self, _factory, list_item) -> None:
         box = Gtk.Box(
@@ -931,6 +951,7 @@ class DriveWindow(Adw.ApplicationWindow):
         )
         label.set_text(item.name)
         label.set_tooltip_text(item.path)
+        box._drive_item = item
 
     def _active_files_view(self) -> Gtk.Widget:
         return self.grid if self._view_mode == "grid" else self.column
@@ -1570,12 +1591,18 @@ class DriveWindow(Adw.ApplicationWindow):
         if keyval == Gdk.KEY_F2:
             self._rename()
             return True
+        if key_requests_trash(keyval):
+            self._trash()
+            return True
         if keyval == Gdk.KEY_Escape and self.search_bar.get_search_mode():
             self._on_stop_search()
             return True
         return False
 
-    def _on_item_context(self, _gesture, _n_press, x, y) -> None:
+    def _on_item_context(self, gesture, _n_press, x, y) -> None:
+        view = gesture.get_widget() or self._active_files_view()
+        ctrl = bool(gesture.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK)
+        self._select_files_at_pointer(view, x, y, additive=ctrl)
         items = self._selected_items()
         if not items:
             self._toast(_("Select an item first"))
@@ -1763,15 +1790,40 @@ class DriveWindow(Adw.ApplicationWindow):
 
     def _pointer_on_files_item(self, view: Gtk.Widget, x: float, y: float) -> bool:
         """True when (x, y) hits a row/cell child rather than empty view chrome."""
+        return self._files_position_at(view, x, y) >= 0
+
+    def _files_position_at(self, view: Gtk.Widget, x: float, y: float) -> int:
+        """Return MultiSelection index for the list/grid item under (x, y), or -1."""
         target = view.pick(x, y, Gtk.PickFlags.DEFAULT)
         if target is None or target is view:
-            return False
+            return -1
         widget: Gtk.Widget | None = target
-        while widget is not None:
-            if widget is view:
-                return True
+        while widget is not None and widget is not view:
+            if isinstance(widget, (Gtk.ColumnViewRow, Gtk.ColumnViewCell)):
+                pos = int(widget.get_position())
+                if pos >= 0:
+                    return pos
+            item = getattr(widget, "_drive_item", None)
+            if isinstance(item, DriveItem):
+                return self._selected_position(item)
             widget = widget.get_parent()
-        return False
+        return -1
+
+    def _select_files_at_pointer(self, view: Gtk.Widget, x: float, y: float, *, additive: bool) -> None:
+        """Update selection for a secondary click before building the context menu."""
+        pos = self._files_position_at(view, x, y)
+        if pos < 0:
+            return
+        action = context_click_selection_action(
+            already_selected=bool(self.selection.is_selected(pos)),
+            ctrl_held=additive,
+        )
+        if action == "keep":
+            return
+        if action == "additive":
+            self.selection.select_item(pos, False)
+            return
+        self.selection.select_item(pos, True)
 
     def _on_files_item_pressed(self, gesture, _n_press, x, y) -> None:
         view = gesture.get_widget()
