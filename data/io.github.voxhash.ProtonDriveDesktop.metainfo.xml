@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.15.3" date="2026-10-23">
+      <description>
+        <p>Disable broken drag-out download from My files (deferred until fixed). Drag-and-drop upload onto My files is unchanged. Remove docs screenshot assets.</p>
+      </description>
+    </release>
     <release version="1.15.2" date="2026-10-23">
       <description>
         <p>Delete and Backspace trash the current selection like the toolbar. Right-click selects the item under the pointer before the context menu so Rename and related actions apply to the clicked row in list and grid views.</p>
@@ -36,12 +41,12 @@
     </release>
     <release version="1.15.1" date="2026-10-23">
       <description>
-        <p>Fix drag-out download: rubberband selection no longer steals the pointer from GTK DragSource, and prepare waits without cancelling the gesture so selected My files can be dropped onto a local file manager.</p>
+        <p>Drag-out download gesture fix (feature later removed in 1.15.3).</p>
       </description>
     </release>
     <release version="1.15.0" date="2026-10-23">
       <description>
-        <p>Drag selected My files out of the listing onto a local folder to download via the official CLI transfer queue. Properties uses CLI 0.9.0 filesystem size for folders. Documented takeout run and remaining CLI gaps.</p>
+        <p>Properties uses CLI 0.9.0 filesystem size for folders. Documented takeout run and remaining CLI gaps. (Drag-out download from this release was removed in 1.15.3.)</p>
       </description>
     </release>
     <release version="1.14.2" date="2026-10-05">

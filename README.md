@@ -10,7 +10,6 @@ Unofficial GTK4 / libadwaita desktop GUI for **Proton’s official Drive CLI**. 
 
 Not affiliated with Proton AG. The app/tray icon is Proton’s official Drive mark from [ProtonDriveApps/android-drive](https://github.com/ProtonDriveApps/android-drive) (GPL-3.0-or-later).
 
-
 ## Features
 
 - Live listing of My files, Photos, Shared with me, and Trash

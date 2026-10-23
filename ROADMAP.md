@@ -45,7 +45,7 @@
 ## Priority: desktop UX parity
 
 - [x] Drag-and-drop upload onto the file view (files and folders in My files)
-- [x] Drag-out download from My files onto a local folder (GTK4 DragSource + transfer queue + `filesystem download`)
+- [ ] Drag-out download from My files onto a local folder — **deferred until fixed** (GTK4 DragSource + staging/`Gdk.FileList` previously saved under `/tmp` instead of the drop target; removed in 1.15.3)
 - [x] Transfer progress for upload/download (best-effort scrape of CLI spinner text until Proton ships JSON progress)
 - [x] In-memory transfer queue with one active CLI process and cancel of the owned process tree
 - [x] In-list search / filter (Ctrl+F) over the current folder listing

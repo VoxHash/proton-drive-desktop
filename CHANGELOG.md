@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.3] — 2026-10-23
+
+### Removed
+
+- Drag-out download from My files (`Gtk.DragSource` / staging / `Gdk.FileList`) — drops landed under `/tmp` with the filename instead of the file-manager target; deferred until fixed (see ROADMAP)
+- README / docs screenshot assets and references under `docs/images/` (purged from git history)
+
+### Changed
+
+- Drag-and-drop **upload** onto My files is unchanged; use the Download toolbar action for downloads
+
 ## [1.15.2] — 2026-10-23
 
 ### Fixed
@@ -18,13 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Drag-out from My files: `Gtk.DragSource` now wins over ColumnView/GridView rubberband (Nautilus-style disable-on-item-press), and transfer wait during `prepare` no longer pumps GDK button-release (which aborted the grab before `Gdk.FileList` was ready)
+- Drag-out from My files (later removed in 1.15.3): `Gtk.DragSource` vs ColumnView/GridView rubberband and prepare wait without pumping GDK button-release
 
 ## [1.15.0] — 2026-10-23
 
 ### Added
 
-- Drag-out download: drag selected files/folders from **My files** onto a local file manager folder; the app downloads via the official CLI transfer queue (`filesystem download`, rename conflicts) into a staging dir and offers a `Gdk.FileList` so the desktop copies into the drop path
+- Drag-out download from My files (later removed in 1.15.3 — see ROADMAP)
 - Properties → Size for folders uses live `proton-drive filesystem size` (CLI 0.9.0+) with descendant count when present
 - CLI wrapper helpers: `filesystem_size`, `takeout_run`, `parse_filesystem_size_payload` (takeout UI deferred — see ROADMAP)
 
@@ -172,6 +183,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First GTK4 GUI for Proton's official Drive CLI on Linux
 - Live account listing, upload/download, trash, new folder
 
+[1.15.3]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.3
+[1.15.2]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.2
+[1.15.1]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.1
+[1.15.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.15.0
 [1.14.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.14.0
 [1.13.1]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.13.1
 [1.13.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.13.0
