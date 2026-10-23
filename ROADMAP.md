@@ -47,6 +47,7 @@
 - [x] Drag-and-drop upload onto the file view (files and folders in My files) — Settings **Enable drag files in (upload)**, **default ON**; independent of drag-out
 - [x] Drag-out download from My files onto a local folder — **opt-in, still risky** (Settings → **Enable drag files out**, **default OFF**). Stage via transfer queue on first drag; `prepare` returns `Gdk.FileList` only when ready (no MainContext pump). Rubberband disabled on item press. Residual risk: some FMs/compositors may leave files under staging `/tmp` — use toolbar Download if that happens
 - [x] Toolbar cleanup — keep essentials (back, search, view, menu, new, upload, download, refresh, trash-section empty/delete-permanent); item actions (open, share, rename, copy, move, trash, properties) on **right-click** with symbolic icons
+- [x] Open ≠ Download — Open navigates containers or download+launch files; Download saves to download folder only
 - [x] Transfer progress for upload/download (best-effort scrape of CLI spinner text until Proton ships JSON progress)
 - [x] In-memory transfer queue with configurable parallel CLI processes (default 2, Settings 1–4) and cancel of owned process trees
 - [x] Browse My files / other sections while toolbar transfers run (bottom transfer strip; no full-page busy overlay for uploads/downloads)

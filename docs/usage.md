@@ -4,6 +4,8 @@ Launch `proton-drive-desktop`. Sidebar sections map to CLI paths `/my-files`, `/
 
 **Toolbar vs right-click:** the header keeps back, search, view, menu, new folder/album, upload, download, refresh, and trash-section empty/delete-permanent. Open, share, rename, copy, move, trash/restore, and properties are on the **right-click** menu (symbolic icons + labels).
 
+**Open vs Download:** **Open** enters folders/albums/days; for files and photos it downloads into the download folder if needed (transfer queue) then launches with the default app. **Download** only saves to the download folder (and may open that folder in the file manager when the queue finishes) — it does not launch the file.
+
 **Drag-in / drag-out** are independent Settings toggles under Downloads:
 - **Enable drag files in (upload)** — **on by default**. Drop local files onto My files (`filesystem upload`).
 - **Enable drag files out (to file manager)** — **off by default**. First drag stages a CLI download; drag again for `Gdk.FileList`. Still risky on some compositors — prefer toolbar Download if drops stay under `/tmp`.

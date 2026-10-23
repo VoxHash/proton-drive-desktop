@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.18.1" date="2026-10-23">
+      <description>
+        <p>Open and Download are distinct: Open navigates folders or downloads a file and launches it with the default app; Download only saves to the download folder.</p>
+      </description>
+    </release>
     <release version="1.18.0" date="2026-10-23">
       <description>
         <p>Independent drag-in (upload, default on) and drag-out (default off) settings. Cleaner toolbar: item actions moved to the right-click menu. Deep name search walks folders with official filesystem list (cancelable; no content index). Glass-style CSS and clearer context icons.</p>

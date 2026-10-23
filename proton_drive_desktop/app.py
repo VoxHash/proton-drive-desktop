@@ -175,6 +175,102 @@ def is_downloadable_kind(kind: str) -> bool:
     return kind not in _NON_DOWNLOADABLE_KINDS
 
 
+# Open vs Download (Proton-style): folders navigate; files download then launch.
+OPEN_INTENT_NAVIGATE = "navigate"
+OPEN_INTENT_LAUNCH = "launch"
+OPEN_INTENT_INVITATION = "invitation"
+OPEN_INTENT_REFUSE = "refuse"
+
+
+def open_intent_for_kind(kind: str) -> str:
+    """How Open should treat a listing row (not the same as Download).
+
+    * ``navigate`` — enter folder / day / album
+    * ``launch`` — ensure a local copy, then open with the default app
+    * ``invitation`` — accept/reject dialog
+    * ``refuse`` — cannot open
+    """
+    key = str(kind or "").strip().lower()
+    if key in {"folder", "day", "album"}:
+        return OPEN_INTENT_NAVIGATE
+    if key == "invitation":
+        return OPEN_INTENT_INVITATION
+    if key in {"file", "photo"} or is_downloadable_kind(key):
+        return OPEN_INTENT_LAUNCH
+    return OPEN_INTENT_REFUSE
+
+
+def open_action_tooltip(kind: str) -> str:
+    """Context-menu tooltip for Open (distinct from Download)."""
+    intent = open_intent_for_kind(kind)
+    if intent == OPEN_INTENT_NAVIGATE:
+        return _("Enter this folder")
+    if intent == OPEN_INTENT_LAUNCH:
+        return _("Download if needed, then open with the default app")
+    if intent == OPEN_INTENT_INVITATION:
+        return _("Review this invitation")
+    return _("Cannot open this item")
+
+
+def download_action_tooltip() -> str:
+    """Context-menu / toolbar tooltip for Download (save only)."""
+    return _("Save to the download folder (does not open the file)")
+
+
+def snapshot_dir_names(folder: Path) -> set[str]:
+    """Names currently present in *folder* (for resolving a new download)."""
+    if not folder.is_dir():
+        return set()
+    try:
+        return {p.name for p in folder.iterdir()}
+    except OSError:
+        return set()
+
+
+def resolve_downloaded_path(
+    dest: Path,
+    remote_name: str,
+    *,
+    before_names: set[str] | None = None,
+) -> Path | None:
+    """Locate the local path produced by downloading *remote_name* into *dest*.
+
+    When *before_names* is set (snapshot before the CLI download), prefer newly
+    created paths so a ``rename`` conflict does not open a stale same-named file.
+    """
+    if not dest.is_dir():
+        return None
+    try:
+        children = list(dest.iterdir())
+    except OSError:
+        return None
+    exact = dest / remote_name
+    before = before_names if before_names is not None else set()
+    newcomers = [p for p in children if p.name not in before]
+    # Exact name appeared during this download.
+    if exact.exists() and (before_names is None or remote_name not in before):
+        return exact
+    if len(newcomers) == 1:
+        return newcomers[0]
+    stem = Path(remote_name).stem.casefold()
+    pool = newcomers if newcomers else children
+    matches = [
+        p
+        for p in pool
+        if Path(p.name).stem.casefold() == stem or p.name.casefold().startswith(stem)
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    if matches:
+        try:
+            return max(matches, key=lambda p: p.stat().st_mtime)
+        except OSError:
+            return matches[0]
+    if exact.exists():
+        return exact
+    return None
+
+
 def drag_out_section_allowed(section: str) -> bool:
     """Drag-out download is limited to My files (not Shared / Trash / Photos chrome)."""
     return section == "/my-files"
@@ -779,7 +875,7 @@ class DriveWindow(Adw.ApplicationWindow):
         for icon, tip, handler, key in (
             ("folder-new-symbolic", _("New folder"), self._new_folder, "new_folder_btn"),
             ("document-save-symbolic", _("Upload"), self._upload, None),
-            ("folder-download-symbolic", _("Download"), self._download, None),
+            ("folder-download-symbolic", download_action_tooltip(), self._download, None),
             ("edit-delete-symbolic", _("Delete permanently"), self._delete_permanently, "delete_permanently_btn"),
             ("user-trash-full-symbolic", _("Empty trash"), self._empty_trash, "empty_trash_btn"),
             ("view-refresh-symbolic", _("Refresh"), lambda *_: self.reload(), None),
@@ -1253,6 +1349,12 @@ class DriveWindow(Adw.ApplicationWindow):
     def _on_transfer_finished(self, job: TransferJob, result: object, snap: QueueSnapshot) -> bool:
         if job.kind == "drag_out":
             self._on_drag_out_stage_finished(result)
+            self._sync_transfer_action_buttons(snap)
+            return False
+        if job.kind in ("open", "photo_open") and isinstance(result, str):
+            # Open = launch the file; do not treat as "save folder" for file-manager browse.
+            self._launch_local_path(result)
+            self._toast(_("Opened {name}").format(name=Path(result).name))
             self._sync_transfer_action_buttons(snap)
             return False
         if job.kind in ("download", "photo_download") and isinstance(result, str):
@@ -1829,6 +1931,82 @@ class DriveWindow(Adw.ApplicationWindow):
                 return i
         return -1
 
+    def _launch_local_path(self, path: str) -> None:
+        """Open a local file/folder with the desktop default handler."""
+        target = Path(path).expanduser()
+        if not target.exists():
+            self._toast(_("Local file missing: {name}").format(name=target.name))
+            return
+        uri = target.resolve().as_uri()
+        try:
+            Gio.AppInfo.launch_default_for_uri(uri, None)
+            return
+        except GLib.Error:
+            pass
+        subprocess.Popen(
+            ["xdg-open", str(target)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+    def _navigate_into(self, item: DriveItem) -> None:
+        self.crumbs.append((item.name, item.path))
+        self.current_path = item.path
+        self._pending_path_restore = False
+        self._persist_last_path()
+        self.reload()
+
+    def _open_file_locally(self, item: DriveItem) -> None:
+        """Download if needed into the download folder, then launch the local file."""
+        dest = download_folder()
+        dest.mkdir(parents=True, exist_ok=True)
+        existing = dest / item.name
+        if existing.is_file():
+            self._launch_local_path(str(existing))
+            self._toast(_("Opened {name}").format(name=item.name))
+            return
+        before = snapshot_dir_names(dest)
+        dest_str = str(dest)
+        remote = item.path
+        name = item.name
+        photo = item.kind == "photo" or self.section == "/photos"
+        label = _("Opening {name}").format(name=name)
+
+        def runner(on_progress):
+            if photo:
+                self.cli.photo_download(remote, dest_str, on_progress=on_progress)
+            else:
+                self.cli.download(
+                    remote,
+                    dest_str,
+                    file_conflict="rename",
+                    folder_conflict="rename",
+                    on_progress=on_progress,
+                )
+            local = resolve_downloaded_path(Path(dest_str), name, before_names=before)
+            if local is None:
+                raise CliError(_("Download finished but {name} was not found locally").format(name=name))
+            return str(local)
+
+        self._enqueue_transfer("photo_open" if photo else "open", label, runner)
+
+    def _open_item(self, item: DriveItem) -> None:
+        """Open semantics: navigate containers; launch files; never identical to Download."""
+        intent = open_intent_for_kind(item.kind)
+        if intent == OPEN_INTENT_NAVIGATE:
+            self._navigate_into(item)
+            return
+        if intent == OPEN_INTENT_INVITATION:
+            InvitationDialog(self, item).present()
+            return
+        if intent == OPEN_INTENT_LAUNCH:
+            if not is_downloadable_kind(item.kind):
+                self._toast(_("Cannot open this item"))
+                return
+            self._open_file_locally(item)
+            return
+        self._toast(_("Cannot open this item"))
+
     def _open_selected(self, *_args) -> None:
         items = self._selected_items()
         if not items:
@@ -1836,9 +2014,7 @@ class DriveWindow(Adw.ApplicationWindow):
         if len(items) > 1:
             self._toast(_("Open one item at a time"))
             return
-        position = self._selected_position(items[0])
-        if position >= 0:
-            self._on_activate(self._active_files_view(), position)
+        self._open_item(items[0])
 
     def _on_key(self, _controller, keyval, _keycode, state) -> bool:
         ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
@@ -1865,7 +2041,13 @@ class DriveWindow(Adw.ApplicationWindow):
         return False
 
     def _context_action_button(
-        self, label: str, icon: str, handler, popover: Gtk.Popover
+        self,
+        label: str,
+        icon: str,
+        handler,
+        popover: Gtk.Popover,
+        *,
+        tooltip: str | None = None,
     ) -> Gtk.Button:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         row.append(Gtk.Image.new_from_icon_name(icon))
@@ -1874,7 +2056,7 @@ class DriveWindow(Adw.ApplicationWindow):
         btn = Gtk.Button(has_frame=False)
         btn.set_child(row)
         btn.add_css_class("context-action")
-        btn.set_tooltip_text(label)
+        btn.set_tooltip_text(tooltip or label)
         btn.connect("clicked", lambda _b, h=handler, p=popover: (p.popdown(), h()))
         return btn
 
@@ -1891,67 +2073,77 @@ class DriveWindow(Adw.ApplicationWindow):
             self._item_popover.popdown()
             self._item_popover.unparent()
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        # (label, symbolic icon, handler)
-        actions: list[tuple[str, str, object]] = []
+        # (label, symbolic icon, handler, tooltip)
+        actions: list[tuple[str, str, object, str | None]] = []
+        dl_tip = download_action_tooltip()
         if len(items) > 1:
             if self.section == "/trash":
-                actions = [(_("Restore"), "edit-undo-symbolic", self._trash)]
+                actions = [(_("Restore"), "edit-undo-symbolic", self._trash, None)]
             elif self.section == "/photos":
                 if _photos_album_path(self.current_path) and all(i.kind == "photo" for i in items):
                     actions = [
-                        (_("Remove from album"), "list-remove-symbolic", self._trash),
-                        (_("Download"), "folder-download-symbolic", self._download),
+                        (_("Remove from album"), "list-remove-symbolic", self._trash, None),
+                        (_("Download"), "folder-download-symbolic", self._download, dl_tip),
                     ]
                 else:
-                    actions = [(_("Download"), "folder-download-symbolic", self._download)]
+                    actions = [(_("Download"), "folder-download-symbolic", self._download, dl_tip)]
             else:
                 actions = [
-                    (_("Download"), "folder-download-symbolic", self._download),
-                    (_("Move"), "send-to-symbolic", self._move),
-                    (_("Move to trash"), "user-trash-symbolic", self._trash),
+                    (_("Download"), "folder-download-symbolic", self._download, dl_tip),
+                    (_("Move"), "send-to-symbolic", self._move, None),
+                    (_("Move to trash"), "user-trash-symbolic", self._trash, None),
                 ]
         elif self.section == "/trash":
             actions = [
-                (_("Restore"), "edit-undo-symbolic", self._trash),
-                (_("Delete permanently"), "edit-delete-symbolic", self._delete_permanently),
-                (_("Empty trash"), "user-trash-full-symbolic", self._empty_trash),
+                (_("Restore"), "edit-undo-symbolic", self._trash, None),
+                (_("Delete permanently"), "edit-delete-symbolic", self._delete_permanently, None),
+                (_("Empty trash"), "user-trash-full-symbolic", self._empty_trash, None),
             ]
         elif self.section == "/photos":
             item = items[0]
+            open_tip = open_action_tooltip(item.kind)
             if item.kind == "album":
                 actions = [
-                    (_("Open"), "document-open-symbolic", self._open_selected),
-                    (_("Rename"), "document-edit-symbolic", self._rename),
-                    (_("Delete album"), "user-trash-symbolic", self._delete_album),
+                    (_("Open"), "document-open-symbolic", self._open_selected, open_tip),
+                    (_("Rename"), "document-edit-symbolic", self._rename, None),
+                    (_("Delete album"), "user-trash-symbolic", self._delete_album, None),
                 ]
             elif item.kind == "photo" and _photos_album_path(self.current_path):
                 actions = [
-                    (_("Download"), "folder-download-symbolic", self._download),
-                    (_("Add to album"), "emblem-photos-symbolic", self._add_to_album),
-                    (_("Remove from album"), "list-remove-symbolic", self._remove_from_album),
+                    (_("Open"), "document-open-symbolic", self._open_selected, open_tip),
+                    (_("Download"), "folder-download-symbolic", self._download, dl_tip),
+                    (_("Add to album"), "emblem-photos-symbolic", self._add_to_album, None),
+                    (_("Remove from album"), "list-remove-symbolic", self._remove_from_album, None),
                 ]
             elif item.kind == "photo":
                 actions = [
-                    (_("Download"), "folder-download-symbolic", self._download),
-                    (_("Add to album"), "emblem-photos-symbolic", self._add_to_album),
+                    (_("Open"), "document-open-symbolic", self._open_selected, open_tip),
+                    (_("Download"), "folder-download-symbolic", self._download, dl_tip),
+                    (_("Add to album"), "emblem-photos-symbolic", self._add_to_album, None),
                 ]
             else:
-                actions = [(_("Open"), "document-open-symbolic", self._open_selected)]
+                actions = [(_("Open"), "document-open-symbolic", self._open_selected, open_tip)]
         else:
+            item = items[0]
+            open_tip = open_action_tooltip(item.kind)
             actions = [
-                (_("Open"), "document-open-symbolic", self._open_selected),
-                (_("Download"), "folder-download-symbolic", self._download),
-                (_("Share…"), "emblem-shared-symbolic", self._share),
-                (_("Rename"), "document-edit-symbolic", self._rename),
-                (_("Copy"), "edit-copy-symbolic", self._copy),
-                (_("Move"), "send-to-symbolic", self._move),
-                (_("Move to trash"), "user-trash-symbolic", self._trash),
+                (_("Open"), "document-open-symbolic", self._open_selected, open_tip),
+                (_("Download"), "folder-download-symbolic", self._download, dl_tip),
+                (_("Share…"), "emblem-shared-symbolic", self._share, None),
+                (_("Rename"), "document-edit-symbolic", self._rename, None),
+                (_("Copy"), "edit-copy-symbolic", self._copy, None),
+                (_("Move"), "send-to-symbolic", self._move, None),
+                (_("Move to trash"), "user-trash-symbolic", self._trash, None),
             ]
         if len(items) == 1:
-            actions = list(actions) + [(_("Properties"), "dialog-information-symbolic", self._properties)]
+            actions = list(actions) + [
+                (_("Properties"), "dialog-information-symbolic", self._properties, None)
+            ]
         popover = Gtk.Popover()
-        for label, icon, handler in actions:
-            box.append(self._context_action_button(label, icon, handler, popover))
+        for label, icon, handler, tip in actions:
+            box.append(
+                self._context_action_button(label, icon, handler, popover, tooltip=tip)
+            )
         popover.set_child(box)
         popover.set_parent(self._active_files_view())
         rect = Gdk.Rectangle()
@@ -1967,16 +2159,8 @@ class DriveWindow(Adw.ApplicationWindow):
         item = self.selection.get_item(position) if position >= 0 else None
         if not isinstance(item, DriveItem):
             return
-        if item.kind in ("folder", "day", "album"):
-            self.crumbs.append((item.name, item.path))
-            self.current_path = item.path
-            self._pending_path_restore = False
-            self._persist_last_path()
-            self.reload()
-        elif item.kind == "invitation":
-            InvitationDialog(self, item).present()
-        else:
-            self._download_item(item)
+        # Double-click / Enter uses Open semantics (navigate or download+launch), not Download.
+        self._open_item(item)
 
     def _login(self, *_args) -> None:
         self._toast(_("Complete Proton sign-in in the browser, then this window will refresh."))

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.1] — 2026-10-23
+
+### Fixed
+
+- **Open** and **Download** no longer do the same thing: folders/albums/days **Open** navigates; files/photos **Open** downloads (if needed) then launches with the default app (`Gio.AppInfo` / `xdg-open`). **Download** only saves to the download folder and opens that folder when the queue goes idle
+
 ## [1.18.0] — 2026-10-23
 
 ### Added
@@ -229,6 +235,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First GTK4 GUI for Proton's official Drive CLI on Linux
 - Live account listing, upload/download, trash, new folder
 
+[1.18.1]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.18.1
 [1.18.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.18.0
 [1.17.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.17.0
 [1.16.0]: https://github.com/VoxHash/proton-drive-desktop/releases/tag/v1.16.0
